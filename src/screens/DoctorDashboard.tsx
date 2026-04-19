@@ -22,10 +22,18 @@ export const DoctorDashboard: React.FC = () => {
   } = useQueue();
   const { logout } = useAuth();
   
-  // Assume doctor is assigned to a specific department (mocked as ID '1' for now)
-  const [deptId] = useState('1'); 
+  const [deptId, setDeptId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const currentDept = departments.find(d => d.id === deptId) || { name: 'Clinical Unit' };
+  const [showDeptSelector, setShowDeptSelector] = useState(false);
+
+  // Auto-select first department when data loads
+  React.useEffect(() => {
+    if (!deptId && departments.length > 0) {
+      setDeptId(departments[0].id);
+    }
+  }, [departments]);
+
+  const currentDept = departments.find(d => d.id === deptId) || departments[0] || { name: 'Clinical Unit', id: '' };
 
   const queueList = useMemo(() => 
     tokens.filter(t => t.department.id === deptId && (t.status === 'waiting' || t.status === 'current')),
@@ -93,9 +101,15 @@ export const DoctorDashboard: React.FC = () => {
       <Header 
         title="Doctor Dashboard" 
         rightElement={
-          <TouchableOpacity onPress={logout}>
-            <Ionicons name="log-out-outline" size={24} color={colors.surface} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setShowDeptSelector(true)} style={styles.deptBtn}>
+              <Typography variant="caption" color={colors.surface} weight="700">{currentDept.name}</Typography>
+              <Ionicons name="chevron-down" size={16} color={colors.surface} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={logout} style={{ marginLeft: spacing.m }}>
+              <Ionicons name="log-out-outline" size={24} color={colors.surface} />
+            </TouchableOpacity>
+          </View>
         }
       />
       
@@ -163,6 +177,31 @@ export const DoctorDashboard: React.FC = () => {
           </Typography>
         </View>
       </View>
+
+      {/* Department Selector Modal */}
+      {showDeptSelector && (
+        <View style={styles.modalOverlay}>
+          <Card style={styles.modalContent}>
+            <Typography variant="h3" style={{ marginBottom: spacing.m }}>Switch Clinical Unit</Typography>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {departments.map(dept => (
+                <TouchableOpacity 
+                  key={dept.id} 
+                  style={[styles.deptOption, deptId === dept.id && styles.activeDeptOption]}
+                  onPress={() => {
+                    setDeptId(dept.id);
+                    setShowDeptSelector(false);
+                  }}
+                >
+                  <Typography weight={deptId === dept.id ? '700' : '400'}>{dept.name}</Typography>
+                  {deptId === dept.id && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <Button title="Close" variant="ghost" onPress={() => setShowDeptSelector(false)} />
+          </Card>
+        </View>
+      )}
     </Layout>
   );
 };
@@ -192,6 +231,37 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 60,
     borderRadius: 14,
+  },
+  deptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: spacing.s,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,39,68,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '100%',
+    padding: spacing.l,
+    borderRadius: borderRadius.xl,
+  },
+  deptOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.m,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  activeDeptOption: {
+    backgroundColor: 'rgba(14, 165, 160, 0.05)',
   },
   listTitle: { marginBottom: spacing.m },
   list: { paddingBottom: spacing.xxl },
