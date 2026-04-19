@@ -20,7 +20,7 @@ export const DoctorDashboard: React.FC = () => {
     callNextInDepartment, 
     skipPatient 
   } = useQueue();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   
   const [deptId, setDeptId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
