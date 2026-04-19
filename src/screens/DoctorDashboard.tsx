@@ -26,14 +26,46 @@ export const DoctorDashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showDeptSelector, setShowDeptSelector] = useState(false);
 
-  // Auto-select first department when data loads
+  // Doctor ID to Department mapping algorithm
+  const getDeptFromDocID = (id?: string) => {
+    if (!id) return null;
+    const lowerId = id.toLowerCase();
+    
+    const mapping: Record<string, string> = {
+      'opd': 'OPD',
+      'gen': 'General Consultation',
+      'emr': 'Emergency',
+      'cardio': 'Cardiology',
+      'ortho': 'Orthopedics',
+      'pedia': 'Pediatrics',
+      'med': 'General Medicine',
+      'derma': 'Dermatology',
+      'ent': 'ENT',
+      'gynec': 'Gynecology'
+    };
+
+    // Check suffix match
+    for (const [suffix, name] of Object.entries(mapping)) {
+      if (lowerId.endsWith(suffix)) return name;
+    }
+    return null;
+  };
+
+  // Auto-select department based on DocID or first available
   React.useEffect(() => {
     if (!deptId && departments.length > 0) {
-      setDeptId(departments[0].id);
+      const targetDeptName = getDeptFromDocID(user?.docID);
+      const matchedDept = departments.find(d => 
+        d.name.toLowerCase().includes(targetDeptName?.toLowerCase() || '---')
+      );
+      
+      setDeptId(matchedDept?.id || departments[0].id);
     }
-  }, [departments]);
+  }, [departments, user?.docID]);
 
-  const currentDept = departments.find(d => d.id === deptId) || departments[0] || { name: 'Clinical Unit', id: '' };
+  const currentDept = useMemo(() => 
+    departments.find(d => d.id === deptId) || departments[0] || { name: 'Clinical Unit', id: '' },
+  [departments, deptId]);
 
   const queueList = useMemo(() => 
     tokens.filter(t => t.department.id === deptId && (t.status === 'waiting' || t.status === 'current')),
