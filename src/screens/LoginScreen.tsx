@@ -17,20 +17,22 @@ export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading } = useAuth();
   
+  const [isDoctor, setIsDoctor] = useState(false);
   const [email, setEmail] = useState('');
+  const [docID, setDocID] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    if (isDoctor && !docID || !isDoctor && !email || !password) {
+      setError('Please fill in all identity fields');
       return;
     }
     
     try {
-      await login(email, password);
-    } catch (e) {
-      setError('Invalid credentials');
+      await login(isDoctor ? { docID, password } : { email, password });
+    } catch (e: any) {
+      setError(e.message || 'Invalid credentials');
     }
   };
 
@@ -56,17 +58,43 @@ export const LoginScreen: React.FC = () => {
 
           {/* Login Card */}
           <View style={styles.card}>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, !isDoctor && styles.activeToggle]} 
+                onPress={() => { setIsDoctor(false); setError(''); }}
+              >
+                <Typography variant="caption" weight="700" color={!isDoctor ? colors.surface : colors.muted}>PATIENT</Typography>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, isDoctor && styles.activeToggle]} 
+                onPress={() => { setIsDoctor(true); setError(''); }}
+              >
+                <Typography variant="caption" weight="700" color={isDoctor ? colors.surface : colors.muted}>DOCTOR</Typography>
+              </TouchableOpacity>
+            </View>
+
             <Typography variant="h3" style={styles.cardTitle}>Identity Verification</Typography>
             
-            <Input
-              label="Email Address"
-              placeholder="name@clinic.com"
-              icon="mail-outline"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            {!isDoctor ? (
+              <Input
+                label="Email Address"
+                placeholder="name@clinic.com"
+                icon="mail-outline"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            ) : (
+              <Input
+                label="Doctor ID"
+                placeholder="e.g. DOC-123"
+                icon="id-card-outline"
+                value={docID}
+                onChangeText={setDocID}
+                autoCapitalize="characters"
+              />
+            )}
             
             <Input
               label="Secret Key (Password)"
@@ -91,6 +119,12 @@ export const LoginScreen: React.FC = () => {
               icon="arrow-forward"
               iconPosition="right"
             />
+
+            {isDoctor && (
+              <Typography variant="caption" align="center" color={colors.accent} style={{ marginTop: spacing.m }}>
+                Hint: Any DocID + Password 'doctor123'
+              </Typography>
+            )}
 
             <View style={styles.footer}>
               <View style={styles.avatars}>
@@ -158,8 +192,24 @@ const styles = StyleSheet.create({
     borderTopColor: colors.accent,
   },
   cardTitle: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.l,
     color: colors.primary,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: borderRadius.m,
+    padding: 4,
+    marginBottom: spacing.l,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: borderRadius.s,
+  },
+  activeToggle: {
+    backgroundColor: colors.primary,
   },
   passwordRow: {
     flexDirection: 'row',

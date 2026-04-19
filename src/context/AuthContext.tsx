@@ -4,17 +4,22 @@ import { apiService } from '../services/apiService';
 interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string;
+  docID?: string;
+  role: 'patient' | 'doctor';
   token: string;
+  phone?: string;
+  birthday?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (credentials: { email?: string; docID?: string; password: string }) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,18 +28,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (email: string, password: string) => {
+  const login = async (credentials: { email?: string; docID?: string; password: string }) => {
     setIsLoading(true);
     try {
-      const response = await apiService.login({ email, password });
+      // Mock Doctor Login if docID is provided
+      if (credentials.docID) {
+        if (credentials.password === 'doctor123') {
+           setUser({
+            id: 'doc_mock_1',
+            name: 'Dr. Sanctuary',
+            docID: credentials.docID,
+            role: 'doctor',
+            token: 'mock_doc_token',
+          });
+          return;
+        } else {
+          throw new Error('Access Denied: Invalid Doctor Security Key');
+        }
+      }
+
+      const response = await apiService.login({ 
+        email: credentials.email!, 
+        password: credentials.password 
+      });
       setUser({
         id: response.data._id,
         name: response.data.name,
         email: response.data.email,
+        role: 'patient',
         token: response.data.token,
       });
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Verification failed');
+      throw new Error(error.response?.data?.message || error.message || 'Verification failed');
     } finally {
       setIsLoading(false);
     }
@@ -48,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: response.data._id,
         name: response.data.name,
         email: response.data.email,
+        role: 'patient',
         token: response.data.token,
       });
     } catch (error: any) {
@@ -61,6 +87,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const updateProfile = (data: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...data } : null);
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -68,7 +98,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isLoading, 
       login, 
       signup, 
-      logout 
+      logout,
+      updateProfile
     }}>
       {children}
     </AuthContext.Provider>
