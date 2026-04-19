@@ -7,7 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Layout } from '../components/Layout';
 import { Typography } from '../components/Typography';
 import { Card } from '../components/Card';
-import { colors, spacing, borderRadius } from '../theme/theme';
+import { colors, spacing, borderRadius, shadows } from '../theme/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useQueue } from '../context/QueueContext';
 import { useAuth } from '../context/AuthContext';
@@ -29,9 +29,9 @@ export const HomeScreen: React.FC = () => {
   return (
     <Layout>
       <View style={styles.topHeader}>
-        <View>
+        <View style={styles.headerContent}>
           <Typography variant="h2" style={styles.welcomeText}>Welcome back,</Typography>
-          <Typography variant="body" color={colors.muted}>The clinical sanctuary is prepared. Manage your patient flow with precision and tranquility today.</Typography>
+          <Typography variant="body" color="#cbd5e1" style={styles.subtext}>The clinical sanctuary is prepared. Manage your patient flow with precision and tranquility today.</Typography>
         </View>
       </View>
 
@@ -41,28 +41,26 @@ export const HomeScreen: React.FC = () => {
       >
         {/* Main Stats Row */}
         <View style={styles.statsRow}>
-          <Card style={styles.mainStatCard}>
+          <Card variant="premium" style={styles.mainStatCard}>
             <View style={styles.statIconBadge}>
-              <Ionicons name="people-outline" size={24} color={colors.primary} />
+              <Ionicons name="people" size={20} color={colors.accent} />
             </View>
             <View>
-              <Typography variant="caption" weight="600" color={colors.muted}>LIVE QUEUE</Typography>
+              <Typography variant="caption" weight="600" color="#94a3b8">LIVE QUEUE</Typography>
               <View style={styles.statValueRow}>
-                <Typography variant="h2" color={colors.primary}>{stats.waiting}</Typography>
-                <Typography variant="caption" color={colors.success} style={styles.percentChange}>+12% from avg</Typography>
+                <Typography variant="h2" color={colors.surface}>{stats.waiting}</Typography>
               </View>
             </View>
           </Card>
 
-          <Card style={styles.mainStatCard}>
+          <Card variant="elevated" style={styles.mainStatCard}>
             <View style={styles.statIconBadgeAccent}>
-              <Ionicons name="checkmark-done-circle-outline" size={24} color={colors.success} />
+              <Ionicons name="checkmark-done" size={20} color={colors.success} />
             </View>
             <View>
-              <Typography variant="caption" weight="600" color={colors.muted}>COMPLETED TODAY</Typography>
+              <Typography variant="caption" weight="600" color={colors.muted}>COMPLETED</Typography>
               <View style={styles.statValueRow}>
                 <Typography variant="h2" color={colors.primary}>{stats.completed}</Typography>
-                <Typography variant="caption" color={colors.accent} style={styles.percentChange}>Target: 50</Typography>
               </View>
             </View>
           </Card>
@@ -99,19 +97,19 @@ export const HomeScreen: React.FC = () => {
         </Card>
 
         {/* Action Card */}
-        <Card style={styles.actionCard}>
+        <Card variant="premium" style={styles.actionCard}>
           <View style={styles.actionIconCircle}>
-            <MaterialCommunityIcons name="pulse" size={32} color={colors.accent} />
+            <MaterialCommunityIcons name="heart-pulse" size={40} color={colors.accent} />
           </View>
-          <Typography variant="h3" align="center" style={styles.actionTitle}>Ready for a checkup?</Typography>
-          <Typography variant="body" align="center" color={colors.muted} style={styles.actionSubtitle}>
-            You don't have an active token for today. Select a clinical department to get started.
+          <Typography variant="h2" align="center" color={colors.surface} style={styles.actionTitle}>Begin Your Consultation</Typography>
+          <Typography variant="body" align="center" color="#94a3b8" style={styles.actionSubtitle}>
+            Step into the live clinical flow. Select your specialty and receive your medical token instantly.
           </Typography>
           <TouchableOpacity 
             style={styles.generateButton}
             onPress={() => navigation.navigate('JoinQueue' as any)}
           >
-            <Typography variant="button" color={colors.surface}>Generate Your Token</Typography>
+            <Typography variant="button" color={colors.surface}>Get Medical Token</Typography>
             <Ionicons name="arrow-forward" size={18} color={colors.surface} style={{ marginLeft: 8 }} />
           </TouchableOpacity>
         </Card>
@@ -136,17 +134,24 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { padding: spacing.m, paddingBottom: spacing.xxl },
   topHeader: {
-    padding: spacing.m,
-    paddingTop: spacing.l,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    padding: spacing.l,
+    paddingTop: 60,
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    opacity: 0.9,
   },
   welcomeText: {
     fontSize: 28,
     fontWeight: '800',
-    color: colors.primary,
+    color: colors.surface,
     marginBottom: spacing.xs,
+  },
+  subtext: {
+    lineHeight: 20,
+    maxWidth: '85%',
   },
   statsRow: { 
     flexDirection: 'row', 
@@ -161,17 +166,17 @@ const styles = StyleSheet.create({
     gap: spacing.s,
   },
   statIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.m,
-    backgroundColor: colors.lightAccent,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   statIconBadgeAccent: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.m,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -230,34 +235,36 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     alignItems: 'center',
     marginBottom: spacing.m,
-    backgroundColor: colors.surface,
-    borderColor: colors.accent,
-    borderWidth: 1,
-    borderStyle: 'dashed',
+    borderRadius: 24,
   },
   actionIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.lightAccent,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(14, 165, 160, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.m,
+    marginBottom: spacing.l,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 160, 0.3)',
   },
   actionTitle: {
     marginBottom: spacing.s,
+    fontWeight: '800',
   },
   actionSubtitle: {
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.m,
+    lineHeight: 22,
   },
   generateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.accent,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.m,
-    borderRadius: borderRadius.m,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 14,
+    ...shadows.accent,
   },
   satisfactionCard: {
     padding: spacing.m,
