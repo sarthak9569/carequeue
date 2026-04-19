@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { QueueEntry, apiService } from '../services/apiService';
 import { socket } from '../services/socketService';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import { DEPARTMENTS } from '../data/mockData';
 
 interface QueueContextType {
@@ -15,8 +17,10 @@ interface QueueContextType {
   updateTokenStatus: (tokenId: string, newStatus: QueueEntry['status']) => Promise<void>;
   resetQueue: () => Promise<void>;
   callNextInDepartment: (departmentId: string) => Promise<QueueEntry | null>;
+  skipPatient: (tokenId: string) => Promise<void>;
+  pauseDepartment: (departmentId: string) => Promise<void>;
+  transferPatient: (tokenId: string, newDeptId: string) => Promise<void>;
   departments: { id: string; name: string }[];
-}
 }
 
 const QueueContext = createContext<QueueContextType | undefined>(undefined);
@@ -46,6 +50,30 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       socket.off('queue_updated');
       socket.off('stats_updated');
     };
+  }, []);
+
+  useEffect(() => {
+    // Background notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+
+    const setupNotifications = async () => {
+      if (Device.isDevice) {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+      }
+    };
+
+    setupNotifications();
   }, []);
 
   const fetchInitialData = async () => {
@@ -88,6 +116,36 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
+  const skipPatient = async (tokenId: string) => {
+    try {
+      await apiService.skipPatient(tokenId);
+      // Let socket listener handle state update
+    } catch (error) {
+      console.error("Skip Patient Error:", error);
+      throw error;
+    }
+  };
+
+  const pauseDepartment = async (departmentId: string) => {
+    try {
+      await apiService.pauseDepartment(departmentId);
+      // Let socket handle update
+    } catch (error) {
+      console.error("Pause Department Error:", error);
+      throw error;
+    }
+  };
+
+  const transferPatient = async (tokenId: string, newDeptId: string) => {
+    try {
+      await apiService.transferPatient(tokenId, newDeptId);
+      // Let socket handle update
+    } catch (error) {
+      console.error("Transfer Patient Error:", error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchDepartments();
   }, []);
@@ -98,7 +156,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const serving = tokens.filter(t => t.status === 'current').length;
     const completed = tokens.filter(t => t.status === 'completed').length;
 
-    const byDepartment = DEPARTMENTS.map(dept => {
+    const byDepartment = (departments.length > 0 ? departments : DEPARTMENTS).map(dept => {
       const count = tokens.filter(t => t.department.id === dept.id && t.status === 'waiting').length;
       return { name: dept.name, count };
     });
@@ -161,6 +219,9 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       updateTokenStatus, 
       resetQueue,
       callNextInDepartment,
+      skipPatient,
+      pauseDepartment,
+      transferPatient,
       departments
     }}>
       {children}
