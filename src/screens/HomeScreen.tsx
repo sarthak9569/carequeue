@@ -30,7 +30,18 @@ export const HomeScreen: React.FC = () => {
     <Layout>
       <View style={styles.topHeader}>
         <View style={styles.headerContent}>
-          <Typography variant="h2" style={styles.welcomeText}>Welcome back,</Typography>
+          <View style={styles.titleRow}>
+            <View>
+              <Typography variant="h2" style={styles.welcomeText}>Welcome back,</Typography>
+              <Typography variant="h3" color={colors.surface}>{user?.name}</Typography>
+            </View>
+            <TouchableOpacity 
+              style={styles.settingsBtn}
+              onPress={() => navigation.navigate('Settings' as any)}
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.surface} />
+            </TouchableOpacity>
+          </View>
           <Typography variant="body" color="#cbd5e1" style={styles.subtext}>The clinical sanctuary is prepared. Manage your patient flow with precision and tranquility today.</Typography>
         </View>
       </View>
@@ -134,14 +145,28 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { padding: spacing.m, paddingBottom: spacing.xxl },
   topHeader: {
-    padding: spacing.l,
-    paddingTop: 60,
+    paddingTop: spacing.xl,
     backgroundColor: colors.primary,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
   headerContent: {
-    opacity: 0.9,
+    padding: spacing.l,
+    paddingBottom: spacing.xl,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.m,
+  },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   welcomeText: {
     fontSize: 28,

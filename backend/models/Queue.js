@@ -7,6 +7,7 @@ const queueSchema = new mongoose.Schema({
   department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
   doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', default: null },
   status: { type: String, enum: ['waiting', 'current', 'completed', 'cancelled'], default: 'waiting' },
+  is_skipped: { type: Boolean, default: false },
   source: { type: String, enum: ['web', 'ivr', 'mobile', 'qr'], default: 'web' },
   called_at: { type: Date, default: null },
   completed_at: { type: Date, default: null },

@@ -94,7 +94,7 @@ export const JoinQueueScreen: React.FC = () => {
     }
   };
 
-  const renderDeptCard = (dept: typeof DEPARTMENTS[0]) => {
+  const renderDeptCard = (dept: { id: string; name: string }) => {
     const isSelected = selectedDeptId === dept.id;
     const iconData = DEPT_ICONS[dept.id] || { icon: 'help-circle-outline', lib: Ionicons };
     const IconLib = iconData.lib;

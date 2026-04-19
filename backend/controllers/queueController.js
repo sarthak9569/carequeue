@@ -256,7 +256,84 @@ const resetQueue = async (req, res) => {
   }
 };
 
+// POST /api/queue/skip/:id
+const skipPatient = async (req, res) => {
+  try {
+    const patient = await Queue.findById(req.params.id);
+    if (!patient) return res.status(404).json({ error: 'Not found' });
+
+    patient.status = 'waiting';
+    patient.is_skipped = true;
+    // Push them to the end of the line by updating their creation date slightly or just letting them be re-called
+    patient.createdAt = new Date(); 
+    await patient.save();
+
+    const next = await Queue.findOne({
+      department: patient.department,
+      status: 'waiting',
+      _id: { $ne: patient._id }
+    }).sort({ queue_number: 1 });
+
+    if (next) {
+      next.status = 'current';
+      next.called_at = new Date();
+      await next.save();
+    }
+
+    const io = req.app.get('io');
+    io.to(`dept_${patient.department}`).emit('queue_updated', { department_id: patient.department });
+    io.emit('stats_updated');
+
+    res.json({ success: true, next_patient: next });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// POST /api/queue/pause/:id
+const togglePause = async (req, res) => {
+  try {
+    const dept = await Department.findById(req.params.id);
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+
+    dept.status = dept.status === 'active' ? 'paused' : 'active';
+    await dept.status === 'paused';
+    await dept.save();
+
+    const io = req.app.get('io');
+    io.emit('queue_updated', { department_id: dept._id, paused: dept.status === 'paused' });
+
+    res.json({ success: true, status: dept.status });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// POST /api/queue/transfer/:id
+const transferPatient = async (req, res) => {
+  try {
+    const { new_department_id } = req.body;
+    const patient = await Queue.findById(req.params.id);
+    if (!patient) return res.status(404).json({ error: 'Not found' });
+
+    const oldDept = patient.department;
+    patient.department = new_department_id;
+    patient.status = 'waiting';
+    await patient.save();
+
+    const io = req.app.get('io');
+    io.to(`dept_${oldDept}`).emit('queue_updated', { department_id: oldDept });
+    io.to(`dept_${new_department_id}`).emit('queue_updated', { department_id: new_department_id });
+    io.emit('stats_updated');
+
+    res.json({ success: true, patient });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = {
   joinQueue, getQueue, getPatientStatus,
   getStats, completePatient, callNext, resetQueue,
+  skipPatient, togglePause, transferPatient
 };

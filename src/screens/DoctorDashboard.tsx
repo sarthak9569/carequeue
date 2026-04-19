@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Layout } from '../components/Layout';
@@ -84,6 +84,7 @@ export const DoctorDashboard: React.FC = () => {
 
   const handleNext = async () => {
     try {
+      if (!deptId) return;
       setRefreshing(true);
       const next = await callNextInDepartment(deptId);
       if (!next) {
@@ -225,7 +226,7 @@ export const DoctorDashboard: React.FC = () => {
                     setShowDeptSelector(false);
                   }}
                 >
-                  <Typography weight={deptId === dept.id ? '700' : '400'}>{dept.name}</Typography>
+                  <Typography weight={deptId === dept.id ? '700' : 'normal'}>{dept.name}</Typography>
                   {deptId === dept.id && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
                 </TouchableOpacity>
               ))}

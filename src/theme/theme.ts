@@ -24,15 +24,41 @@ export const spacing = {
 };
 
 export const borderRadius = {
-  s: 4,
-  m: 8,
-  l: 12,
-  xl: 16,
+  xs: 6,
+  s: 8,
+  m: 12,
+  l: 16,
+  xl: 24,
   round: 9999,
+};
+
+export const shadows = {
+  soft: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  medium: {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+  accent: {
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
+  }
 };
 
 export const theme = {
   colors,
   spacing,
   borderRadius,
+  shadows,
 };

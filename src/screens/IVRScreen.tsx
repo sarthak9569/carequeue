@@ -8,7 +8,12 @@ import {
   Vibration,
   Linking
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Layout } from '../components/Layout';
+import { Header } from '../components/Header';
 import { Typography } from '../components/Typography';
+import { Button } from '../components/Button';
 import { colors, spacing, borderRadius } from '../theme/theme';
 import { DEPARTMENTS } from '../data/mockData';
 import { useQueue } from '../context/QueueContext';
