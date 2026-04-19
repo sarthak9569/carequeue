@@ -16,6 +16,8 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 
 import { TokenHistoryScreen } from '../screens/TokenHistoryScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 
 // Context
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +30,8 @@ export type RootStackParamList = {
   IVR: undefined;
   DoctorDashboard: undefined;
   AdminDashboard: undefined;
+  Settings: undefined;
+  Profile: undefined;
 };
 
 export type AuthStackParamList = {
@@ -101,16 +105,21 @@ const TabNavigator = () => {
 };
 
 export const RootNavigator = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator 
+          screenOptions={{ headerShown: false }}
+          initialRouteName={user?.role === 'doctor' ? 'DoctorDashboard' : 'MainTabs'}
+        >
           <Stack.Screen name="MainTabs" component={TabNavigator} />
           <Stack.Screen name="IVR" component={IVRScreen} />
           <Stack.Screen name="DoctorDashboard" component={DoctorDashboard} />
           <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />
