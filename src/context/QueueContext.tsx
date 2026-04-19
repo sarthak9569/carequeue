@@ -121,7 +121,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const skipPatient = async (tokenId: string) => {
     try {
       await apiService.skipPatient(tokenId);
-      // Let socket listener handle state update
+      await fetchInitialData(); // Force refresh to see updated positions
     } catch (error) {
       console.error("Skip Patient Error:", error);
       throw error;
@@ -195,18 +195,34 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateTokenStatus = async (tokenId: string, newStatus: QueueEntry['status']) => {
-    setTokens(prev => prev.map(t => 
-      t.id === tokenId ? { ...t, status: newStatus } : t
-    ));
+    try {
+      if (newStatus === 'completed') {
+        await apiService.completePatient(tokenId);
+      }
+      await fetchInitialData();
+    } catch (error) {
+      console.error("Update Token Status Error:", error);
+      throw error;
+    }
   };
 
   const callNextInDepartment = async (departmentId: string) => {
-    const nextItem = tokens.find(t => t.department.id === departmentId && t.status === 'waiting');
-    if (nextItem) {
-      await updateTokenStatus(nextItem.id, 'current');
-      return { ...nextItem, status: 'current' } as QueueEntry;
+    try {
+      const response = await apiService.callNext(departmentId);
+      await fetchInitialData();
+      return response.data.current_patient ? {
+        id: response.data.current_patient._id,
+        queue_number: `#${response.data.current_patient.queue_number}`,
+        patient_name: response.data.current_patient.patient_name,
+        status: 'current',
+        department: { id: departmentId, name: '' },
+        source: response.data.current_patient.source,
+        createdAt: new Date()
+      } as QueueEntry : null;
+    } catch (error) {
+      console.error("Call Next Error:", error);
+      throw error;
     }
-    return null;
   };
 
   const resetQueue = async () => {
