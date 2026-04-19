@@ -17,7 +17,8 @@ import { Typography } from '../components/Typography';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { colors, spacing, borderRadius } from '../theme/theme';
+import { colors, spacing, borderRadius, shadows } from '../theme/theme';
+import { Input } from '../components/Input';
 import { DEPARTMENTS } from '../data/mockData';
 import { RootStackParamList, TabParamList } from '../navigation/RootNavigator';
 import { useQueue } from '../context/QueueContext';
@@ -42,10 +43,11 @@ const DEPT_ICONS: Record<string, { icon: any, lib: any }> = {
 export const JoinQueueScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<JoinQueueRouteProp>();
-  const { generateToken, stats } = useQueue();
+  const { generateToken, stats, departments } = useQueue();
   const { user } = useAuth();
   
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [queueToken, setQueueToken] = useState<any>(null);
@@ -62,10 +64,16 @@ export const JoinQueueScreen: React.FC = () => {
       return;
     }
 
+    if (!phoneNumber || phoneNumber.length < 10) {
+      Alert.alert('Error', 'Please enter a valid mobile number for turn alerts');
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await generateToken({
         name: user?.name || 'Anonymous Patient',
+        phone: phoneNumber,
         departmentId: selectedDeptId,
         source: 'mobile',
         userId: user?.id
@@ -132,8 +140,26 @@ export const JoinQueueScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.grid}>
-          {DEPARTMENTS.map(renderDeptCard)}
+          {departments.length > 0 
+            ? departments.map(renderDeptCard)
+            : DEPARTMENTS.map(renderDeptCard) // Fallback to mock for UI layout if API fails
+          }
         </View>
+
+        <Card style={styles.contactCard}>
+          <Typography variant="h4" style={{ marginBottom: spacing.s }}>Notification Details</Typography>
+          <Typography variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.m }}>
+            We will send a local SMS alert to this number when you are next in line.
+          </Typography>
+          <Input 
+            label="Mobile Number"
+            placeholder="e.g. 9876543210"
+            keyboardType="phone-pad"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            icon="call-outline"
+          />
+        </Card>
 
         <Button 
           title="Generate My Token" 
@@ -178,6 +204,13 @@ const styles = StyleSheet.create({
     padding: spacing.m,
     paddingTop: spacing.l,
     backgroundColor: colors.surface,
+  },
+  contactCard: {
+    marginBottom: spacing.l,
+    padding: spacing.l,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   container: { padding: spacing.m, paddingBottom: spacing.xxl },
   grid: {
