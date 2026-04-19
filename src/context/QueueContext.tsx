@@ -59,6 +59,8 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
       }),
     });
 
