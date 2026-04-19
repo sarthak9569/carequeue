@@ -5,12 +5,9 @@ import {
   TouchableOpacity, 
   ScrollView,
   Dimensions,
-  Vibration
+  Vibration,
+  Linking
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-import { Layout } from '../components/Layout';
-import { Header } from '../components/Header';
 import { Typography } from '../components/Typography';
 import { colors, spacing, borderRadius } from '../theme/theme';
 import { DEPARTMENTS } from '../data/mockData';
@@ -29,6 +26,8 @@ export const IVRScreen: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [screenText, setScreenText] = useState('READY TO CALL');
   const [tempPhone, setTempPhone] = useState('');
+  const [isSimulator, setIsSimulator] = useState(true);
+  const TWILIO_IVR_NUMBER = '+1 234 567 890'; // Placeholder
   const logScrollRef = useRef<ScrollView>(null);
 
   const addLog = (msg: string) => {
@@ -146,10 +145,42 @@ export const IVRScreen: React.FC = () => {
 
   return (
     <Layout backgroundColor="#020617">
-      <Header title="CareQueue IVR" showBack />
-      
       <View style={styles.main}>
-        <View style={styles.phoneHead}>
+        {/* Toggle between Simulator and Real World */}
+        <View style={styles.modeSelector}>
+          <TouchableOpacity 
+            style={[styles.modeBtn, isSimulator && styles.activeModeBtn]} 
+            onPress={() => setIsSimulator(true)}
+          >
+            <Typography variant="caption" color={isSimulator ? colors.surface : colors.muted} weight="700">SIMULATOR</Typography>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.modeBtn, !isSimulator && styles.activeModeBtn]} 
+            onPress={() => setIsSimulator(false)}
+          >
+            <Typography variant="caption" color={!isSimulator ? colors.surface : colors.muted} weight="700">REAL WORLD</Typography>
+          </TouchableOpacity>
+        </View>
+
+        {!isSimulator ? (
+          <View style={styles.realWorldContainer}>
+            <View style={styles.phoneBadge}>
+              <Ionicons name="call" size={48} color={colors.accent} />
+            </View>
+            <Typography variant="h2" align="center" style={{ marginBottom: spacing.s }}>{TWILIO_IVR_NUMBER}</Typography>
+            <Typography variant="body" align="center" color={colors.muted} style={{ marginBottom: spacing.xl }}>
+              Dial this number to register via the automated voice assistant.
+            </Typography>
+            <Button 
+              title="Dial clinical Queue" 
+              onPress={() => Linking.openURL(`tel:${TWILIO_IVR_NUMBER}`)}
+              style={{ width: '100%' }}
+              icon="navigate"
+            />
+          </View>
+        ) : (
+          <>
+            <View style={styles.phoneHead}>
           <View style={styles.screen}>
             <Typography style={styles.monoText}>{screenText}</Typography>
             <Typography style={[styles.monoText, { color: '#fbbf24' }]}>
@@ -187,13 +218,20 @@ export const IVRScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+          </>
+        )}
       </View>
     </Layout>
   );
 };
 
 const styles = StyleSheet.create({
-  main: { flex: 1, padding: spacing.l, justifyContent: 'space-between' },
+  main: { flex: 1, padding: spacing.l },
+  modeSelector: { flexDirection: 'row', backgroundColor: '#1e293b', borderRadius: borderRadius.m, padding: 4, marginBottom: spacing.l },
+  modeBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: borderRadius.s },
+  activeModeBtn: { backgroundColor: colors.accent },
+  realWorldContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.l },
+  phoneBadge: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(14, 165, 160, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.l },
   phoneHead: { padding: spacing.m },
   screen: { backgroundColor: '#064e3b', padding: spacing.l, borderRadius: borderRadius.m, borderWidth: 4, borderColor: '#1e293b', minHeight: 120, justifyContent: 'center' },
   monoText: { fontFamily: 'monospace', color: '#10b981', fontSize: 20, fontWeight: 'bold', textTransform: 'uppercase' },

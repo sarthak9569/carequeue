@@ -23,6 +23,7 @@ connectDB();
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/queue', require('./routes/queue'));
+app.use('/api/ivr', require('./routes/ivr'));
 
 // Health check
 app.get('/api/health', (req, res) =>
