@@ -5,8 +5,14 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
+// Prevent unhandled promise rejections (e.g. mongoose DNS failures) from crashing the process
+process.on('unhandledRejection', (reason) => {
+  console.warn('Unhandled Rejection (suppressed to keep server alive):', reason?.message || reason);
+});
+
 const app = express();
 const server = http.createServer(app);
+
 
 // Socket.io setup
 const io = new Server(server, {

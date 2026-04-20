@@ -14,6 +14,8 @@ import { DoctorDashboard } from '../screens/DoctorDashboard';
 import { AdminDashboard } from '../screens/AdminDashboard';
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { VerifyOtpScreen } from '../screens/VerifyOtpScreen';
 
 import { TokenHistoryScreen } from '../screens/TokenHistoryScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -37,6 +39,8 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  ForgotPassword: { email?: string } | undefined;
+  VerifyOtp: { email: string };
 };
 
 export type TabParamList = {
@@ -56,6 +60,8 @@ const AuthNavigator = () => {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
     </AuthStack.Navigator>
   );
 };

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.6:5000/api';
+const BASE_URL = 'http://10.214.184.93:5000/api';
 
 // Types
 export interface QueueEntry {
@@ -19,6 +19,8 @@ export const apiService = {
   // Auth
   login: (data: any) => axios.post(`${BASE_URL}/auth/login`, data),
   register: (data: any) => axios.post(`${BASE_URL}/auth/register`, data),
+  forgotPassword: (email: string) => axios.post(`${BASE_URL}/auth/forgot-password`, { email }),
+  verifyOtpLogin: (email: string, otp: string) => axios.post(`${BASE_URL}/auth/verify-otp-login`, { email, otp }),
 
   // Queue (Future: Implement these routes in backend as needed)
   joinQueue: (data: any) => axios.post(`${BASE_URL}/queue/join`, data),

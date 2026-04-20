@@ -20,6 +20,8 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
+  forgotPassword: (email: string) => Promise<void>;
+  verifyOtpLogin: (email: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,6 +93,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(prev => prev ? { ...prev, ...data } : null);
   };
 
+  const forgotPassword = async (email: string) => {
+    setIsLoading(true);
+    try {
+      await apiService.forgotPassword(email);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to send OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOtpLogin = async (email: string, otp: string) => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.verifyOtpLogin(email, otp);
+      setUser({
+        id: response.data._id,
+        name: response.data.name,
+        email: response.data.email,
+        role: 'patient',
+        token: response.data.token,
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Invalid OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -99,7 +130,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       login, 
       signup, 
       logout,
-      updateProfile
+      updateProfile,
+      forgotPassword,
+      verifyOtpLogin
     }}>
       {children}
     </AuthContext.Provider>

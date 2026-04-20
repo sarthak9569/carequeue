@@ -110,6 +110,17 @@ export const LoginScreen: React.FC = () => {
                 {error}
               </Typography>
             ) : null}
+            
+            {!isDoctor && (
+              <TouchableOpacity 
+                style={styles.forgotPasswordContainer}
+                onPress={() => navigation.navigate('ForgotPassword')}
+              >
+                <Typography variant="caption" color={colors.primary} weight="600">
+                  Forgot Password or Login via OTP?
+                </Typography>
+              </TouchableOpacity>
+            )}
 
             <Button
               title="Initialize Portal"
@@ -224,6 +235,10 @@ const styles = StyleSheet.create({
   errorText: {
     marginBottom: spacing.s,
     textAlign: 'center',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: spacing.m,
   },
   footer: {
     marginTop: spacing.xl,

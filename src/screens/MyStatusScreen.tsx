@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 import { Layout } from '../components/Layout';
 import { Typography } from '../components/Typography';
@@ -87,6 +88,12 @@ export const MyStatusScreen: React.FC = () => {
   }, [tokens, queueNum, selectedDeptId]);
 
   const sendLocalNotification = async (pos: number, num: string) => {
+    // expo-notifications push was removed from Expo Go in SDK 53.
+    // Only schedule local notifications in a real development/production build.
+    if (Constants.appOwnership === 'expo') {
+      console.log(`[Notification suppressed in Expo Go] Queue ${num} is ${pos} ahead.`);
+      return;
+    }
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Almost Your Turn — CareQueue",
