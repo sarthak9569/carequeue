@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors, spacing, borderRadius } from '../theme/theme';
 import { useQueue } from '../context/QueueContext';
+import { useAuth } from '../context/AuthContext';
 
 type IVRState = 'idle' | 'calling' | 'language' | 'name' | 'department' | 'confirming' | 'success';
 
 export const IVRSimulator: React.FC = () => {
+  const { user } = useAuth();
   const [ivrState, setIvrState] = useState<IVRState>('idle');
   const [modalVisible, setModalVisible] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -18,6 +20,10 @@ export const IVRSimulator: React.FC = () => {
   const [selectedDeptId, setSelectedDeptId] = useState('');
   
   const { generateToken, departments } = useQueue();
+
+  // Hide IVR for Doctors
+  if (user?.role === 'doctor') return null;
+
   const inputRef = useRef<TextInput>(null);
 
   // Pan Responder for Movable Button
@@ -117,8 +123,15 @@ export const IVRSimulator: React.FC = () => {
     }
     else if (ivrState === 'department') {
       const lowerText = text.toLowerCase();
-      // Simple string matching against real departments
-      const foundDept = departments.find(d => lowerText.includes(d.name.toLowerCase()));
+      
+      // Use live departments if available, otherwise fallback to mock data for demo
+      const activeDepts = departments.length > 0 ? departments : [];
+      
+      // Improved matching: check if department name is in text OR text is in department name
+      const foundDept = activeDepts.find(d => {
+        const deptName = d.name.toLowerCase();
+        return lowerText.includes(deptName) || deptName.includes(lowerText);
+      });
       
       if (foundDept) {
         setSelectedDeptId(foundDept.id);
@@ -126,7 +139,7 @@ export const IVRSimulator: React.FC = () => {
       } else {
         // Try again
         const msg = language === 'english'
-          ? "I didn't catch that. Please state the department name again, like Cardiology or E.N.T."
+          ? "I didn't catch that. Please state the department name again, like Cardiology or General Medicine."
           : "Mujhe samajh nahi aaya. Kripya department ka naam fir se batayein.";
         Speech.speak(msg, {
            language: language === 'english' ? 'en-IN' : 'hi-IN',

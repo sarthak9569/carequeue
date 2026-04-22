@@ -26,10 +26,17 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/queue', require('./routes/queue'));
 app.use('/api/ivr', require('./routes/ivr'));
+app.use('/api/prescriptions', require('./routes/prescriptions'));
 
 // Health check
 app.get('/api/health', (req, res) => {

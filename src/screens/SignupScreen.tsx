@@ -50,7 +50,7 @@ export const SignupScreen: React.FC = () => {
               style={styles.logo} 
               resizeMode="contain" 
             />
-            <Typography variant="h1" align="center" style={styles.title}>QueueSeva</Typography>
+            <Typography variant="h1" align="center" style={styles.title}>CareQueue</Typography>
             <Typography variant="caption" align="center" color={colors.muted} style={styles.subtitle}>
               ESTABLISH YOUR SANCTUARY IDENTITY
             </Typography>

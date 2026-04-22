@@ -28,16 +28,16 @@ type JoinQueueRouteProp = RouteProp<TabParamList, 'JoinQueue'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const DEPT_ICONS: Record<string, { icon: any, lib: any }> = {
-  '1': { icon: 'stethoscope', lib: MaterialCommunityIcons }, // OPD
-  '2': { icon: 'doctor', lib: MaterialCommunityIcons }, // General Consultation
-  '3': { icon: 'alert-circle-outline', lib: Ionicons }, // Emergency
-  '4': { icon: 'heart-pulse', lib: MaterialCommunityIcons }, // Cardiology
-  '5': { icon: 'bone', lib: MaterialCommunityIcons }, // Orthopedics
-  '6': { icon: 'baby-face-outline', lib: MaterialCommunityIcons }, // Pediatrics
-  '7': { icon: 'medical-bag', lib: MaterialCommunityIcons }, // General Medicine
-  '8': { icon: 'image-filter-vintage', lib: MaterialCommunityIcons }, // Dermatology
-  '9': { icon: 'ear-hearing', lib: MaterialCommunityIcons }, // ENT
-  '10': { icon: 'human-female', lib: MaterialCommunityIcons }, // Gynecology
+  'OPD': { icon: 'stethoscope', lib: MaterialCommunityIcons },
+  'General Consultation': { icon: 'doctor', lib: MaterialCommunityIcons },
+  'Emergency': { icon: 'alert-circle-outline', lib: Ionicons },
+  'Cardiology': { icon: 'heart-pulse', lib: MaterialCommunityIcons },
+  'Orthopedics': { icon: 'bone', lib: MaterialCommunityIcons },
+  'Pediatrics': { icon: 'baby-face-outline', lib: MaterialCommunityIcons },
+  'General Medicine': { icon: 'medical-bag', lib: MaterialCommunityIcons },
+  'Dermatology': { icon: 'image-filter-vintage', lib: MaterialCommunityIcons },
+  'ENT': { icon: 'ear-hearing', lib: MaterialCommunityIcons },
+  'Gynecology': { icon: 'human-female', lib: MaterialCommunityIcons },
 };
 
 export const JoinQueueScreen: React.FC = () => {
@@ -51,6 +51,8 @@ export const JoinQueueScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [queueToken, setQueueToken] = useState<any>(null);
+  const hasLiveDepartments = departments.length > 0;
+  const selectedDepartmentExists = !!selectedDeptId && departments.some((d) => d.id === selectedDeptId);
 
   useEffect(() => {
     if (route.params?.departmentId) {
@@ -59,8 +61,18 @@ export const JoinQueueScreen: React.FC = () => {
   }, [route.params]);
 
   const handleJoinQueue = async () => {
+    if (!hasLiveDepartments) {
+      Alert.alert('Please wait', 'Departments are still loading from the server. Try again in a moment.');
+      return;
+    }
+
     if (!selectedDeptId) {
       Alert.alert('Error', 'Please select a clinical department');
+      return;
+    }
+
+    if (!selectedDepartmentExists) {
+      Alert.alert('Error', 'Please select a valid department from the live list.');
       return;
     }
 
@@ -96,7 +108,7 @@ export const JoinQueueScreen: React.FC = () => {
 
   const renderDeptCard = (dept: { id: string; name: string }) => {
     const isSelected = selectedDeptId === dept.id;
-    const iconData = DEPT_ICONS[dept.id] || { icon: 'help-circle-outline', lib: Ionicons };
+    const iconData = DEPT_ICONS[dept.name] || { icon: 'help-circle-outline', lib: Ionicons };
     const IconLib = iconData.lib;
     const deptStat = stats.byDepartment.find(s => s.name === dept.name);
 
@@ -142,7 +154,7 @@ export const JoinQueueScreen: React.FC = () => {
         <View style={styles.grid}>
           {departments.length > 0 
             ? departments.map(renderDeptCard)
-            : DEPARTMENTS.map(renderDeptCard) // Fallback to mock for UI layout if API fails
+            : DEPARTMENTS.map(renderDeptCard) // UI-only placeholder cards until API data arrives
           }
         </View>
 
@@ -165,7 +177,7 @@ export const JoinQueueScreen: React.FC = () => {
           title="Generate My Token" 
           onPress={handleJoinQueue} 
           style={styles.submitButton}
-          disabled={!selectedDeptId}
+          disabled={!selectedDeptId || !hasLiveDepartments || !selectedDepartmentExists}
           icon="arrow-forward"
           iconPosition="right"
         />

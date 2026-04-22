@@ -93,7 +93,7 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.analyticsDivider} />
             <View style={styles.analyticsItem}>
               <Typography variant="caption" weight="600" color={colors.muted}>CURRENT SYSTEM LOAD</Typography>
-              <Typography variant="h2" color={colors.danger}>High</Typography>
+              <Typography variant="h2" color={colors.success}>Normal</Typography>
               <Typography variant="caption" color={colors.muted}>8 departments active</Typography>
             </View>
           </View>

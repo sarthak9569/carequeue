@@ -98,16 +98,23 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: spacing.m,
+    paddingVertical: 14,
     paddingHorizontal: spacing.l,
     borderRadius: borderRadius.m,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   outline: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.primary,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   content: {
     flexDirection: 'row',

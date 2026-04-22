@@ -19,10 +19,10 @@ export const Card: React.FC<CardProps> = ({
   if (variant === 'premium' || gradient) {
     return (
       <LinearGradient
-        colors={variant === 'premium' ? [colors.primary, '#1a3a5f'] : [colors.surface, '#f8fafc']}
+        colors={variant === 'premium' ? [colors.primary, '#334155'] : ['#ffffff', '#f1f5f9']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.card, shadows.medium, style]}
+        style={[styles.card, variant === 'premium' ? shadows.premium : shadows.soft, style]}
         {...props}
       >
         {children}
@@ -40,26 +40,28 @@ export const Card: React.FC<CardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.m,
-    padding: spacing.m,
+    borderRadius: borderRadius.l,
+    padding: spacing.l,
     marginBottom: spacing.m,
   },
   elevated: {
-    ...shadows.soft,
-  },
-  premium: {
     ...shadows.medium,
   },
+  premium: {
+    ...shadows.premium,
+  },
   danger: {
-    borderWidth: 1,
-    borderColor: colors.danger,
+    borderWidth: 1.5,
+    borderColor: '#fecaca',
     backgroundColor: '#fef2f2',
   },
   outlined: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   flat: {
     backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
 });

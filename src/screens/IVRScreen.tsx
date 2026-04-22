@@ -24,7 +24,7 @@ type CallState = 'IDLE' | 'CALLING' | 'CONNECTED' | 'ENDED';
 type IVRStep = 'LANG' | 'MENU' | 'REG_PHONE' | 'REG_DEPT' | 'REG_CONFIRM' | 'STATUS_INPUT' | 'STATUS_RESULT';
 
 export const IVRScreen: React.FC = () => {
-  const { generateToken, tokens } = useQueue();
+  const { generateToken, tokens, departments } = useQueue();
   const [callState, setCallState] = useState<CallState>('IDLE');
   const [ivrStep, setIvrStep] = useState<IVRStep>('LANG');
   const [typedValue, setTypedValue] = useState('');
@@ -101,7 +101,8 @@ export const IVRScreen: React.FC = () => {
       }
     } else if (ivrStep === 'REG_DEPT') {
       const deptIdx = parseInt(num) - 1;
-      const dept = DEPARTMENTS[deptIdx] || DEPARTMENTS[0];
+      const activeDepts = departments.length > 0 ? departments : DEPARTMENTS;
+      const dept = activeDepts[deptIdx] || activeDepts[0];
       
       addLog(`User selected ${dept.name}. Registering...`);
       setScreenText('REGISTERING...');

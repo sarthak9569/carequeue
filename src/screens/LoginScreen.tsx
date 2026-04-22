@@ -50,7 +50,7 @@ export const LoginScreen: React.FC = () => {
               style={styles.logo} 
               resizeMode="contain" 
             />
-            <Typography variant="h2" align="center" style={styles.title}>QueueSeva</Typography>
+            <Typography variant="h2" align="center" style={styles.title}>CareQueue</Typography>
             <Typography variant="caption" align="center" color={colors.muted} style={styles.subtitle}>
               THE CLINICAL SANCTUARY
             </Typography>

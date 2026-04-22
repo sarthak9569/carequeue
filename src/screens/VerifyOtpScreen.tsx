@@ -25,8 +25,8 @@ export const VerifyOtpScreen: React.FC = () => {
   const [success, setSuccess] = useState('');
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) {
-      setError('Please enter the 6-digit OTP');
+    if (!otp || otp.length < 4) {
+      setError('Please enter the 4-digit OTP');
       return;
     }
     
@@ -60,17 +60,17 @@ export const VerifyOtpScreen: React.FC = () => {
           <View style={styles.card}>
             <Typography variant="h3" style={styles.cardTitle}>Verify Identity</Typography>
             <Typography variant="body" color={colors.muted} style={styles.description}>
-              We have sent a 6-digit OTP to {email}. Please enter it below to continue.
+              We have sent a 4-digit OTP to {email}. Please enter it below to continue.
             </Typography>
             
             <Input
               label="One Time Password (OTP)"
-              placeholder="123456"
+              placeholder="1234"
               icon="keypad-outline"
               value={otp}
               onChangeText={setOtp}
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={4}
             />
 
             {error ? (

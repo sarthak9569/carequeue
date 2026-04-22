@@ -58,8 +58,8 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
     
     // Hash OTP before saving (optional, but good practice. For now we will save as plain string since it expires in 10mins)
     user.resetOtp = otp;
@@ -72,7 +72,7 @@ router.post('/forgot-password', async (req, res) => {
     // User can add credentials to .env later. Mocking sending for now if credentials are not provided.
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       const transporter = nodemailer.createTransport({
-        service: 'gmail', // or configured provider
+        service: process.env.EMAIL_SERVICE || 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,

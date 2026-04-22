@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -53,7 +53,7 @@ export type TabParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const Tab = createBottomTabNavigator<TabParamList>();
+const Tab = createMaterialTopTabNavigator<TabParamList>();
 
 const AuthNavigator = () => {
   return (
@@ -69,9 +69,9 @@ const AuthNavigator = () => {
 const TabNavigator = () => {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
+      tabBarPosition="bottom"
+      screenOptions={({ route }: { route: any }) => ({
+        tabBarIcon: ({ focused, color }: { focused: boolean, color: string }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
           if (focused) {
@@ -88,24 +88,36 @@ const TabNavigator = () => {
             else if (route.name === 'ScanQR') iconName = 'qr-code-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={22} color={color} />;
         },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
+        tabBarIndicatorStyle: {
+          top: 0,
+          backgroundColor: colors.accent,
+          height: 3,
+        },
         tabBarStyle: {
           backgroundColor: colors.surface,
+          borderTopWidth: 1,
           borderTopColor: colors.border,
           height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
+          elevation: 8,
+          shadowOpacity: 0.1,
         },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          textTransform: 'none',
+        },
+        tabBarShowIcon: true,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Dashboard' }} />
-      <Tab.Screen name="JoinQueue" component={JoinQueueScreen} options={{ tabBarLabel: 'Join' }} />
-      <Tab.Screen name="History" component={TokenHistoryScreen} options={{ tabBarLabel: 'History' }} />
-      <Tab.Screen name="MyStatus" component={MyStatusScreen} options={{ tabBarLabel: 'Status' } } />
-      <Tab.Screen name="ScanQR" component={ScanQRScreen} options={{ tabBarLabel: 'Scan' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Dashboard' }} />
+      <Tab.Screen name="JoinQueue" component={JoinQueueScreen} options={{ title: 'Join' }} />
+      <Tab.Screen name="History" component={TokenHistoryScreen} options={{ title: 'History' }} />
+      <Tab.Screen name="MyStatus" component={MyStatusScreen} options={{ title: 'Status' }} />
+      <Tab.Screen name="ScanQR" component={ScanQRScreen} options={{ title: 'Scan' }} />
     </Tab.Navigator>
   );
 };

@@ -52,7 +52,7 @@ export const ForgotPasswordScreen: React.FC = () => {
           <View style={styles.card}>
             <Typography variant="h3" style={styles.cardTitle}>Reset Identity Key</Typography>
             <Typography variant="body" color={colors.muted} style={styles.description}>
-              Enter your registered email address. We will send a 6-digit One Time Password (OTP) to your inbox to verify your identity.
+              Enter your registered email address. We will send a 4-digit One Time Password (OTP) to your inbox to verify your identity.
             </Typography>
             
             <Input

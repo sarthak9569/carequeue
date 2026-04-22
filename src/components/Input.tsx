@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, StyleSheet, TextInputProps, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography } from './Typography';
 import { colors, spacing, borderRadius } from '../theme/theme';
@@ -15,8 +15,12 @@ export const Input: React.FC<InputProps> = ({
   icon,
   error,
   style,
+  secureTextEntry,
   ...props
 }) => {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const isPasswordInput = secureTextEntry;
+
   return (
     <View style={[styles.container, style]}>
       {label && (
@@ -36,8 +40,21 @@ export const Input: React.FC<InputProps> = ({
         <TextInput
           style={styles.input}
           placeholderTextColor={colors.muted}
+          secureTextEntry={isPasswordInput && !isPasswordVisible}
           {...props}
         />
+        {isPasswordInput && (
+          <TouchableOpacity 
+            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            style={styles.eyeIcon}
+          >
+            <Ionicons 
+              name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'} 
+              size={20} 
+              color={colors.muted} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
       {error && (
         <Typography variant="caption" color={colors.danger} style={styles.errorText}>
@@ -71,6 +88,9 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: spacing.s,
+  },
+  eyeIcon: {
+    padding: spacing.xs,
   },
   input: {
     flex: 1,

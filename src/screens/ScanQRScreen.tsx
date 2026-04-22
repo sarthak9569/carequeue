@@ -16,8 +16,8 @@ import { Layout } from '../components/Layout';
 import { Typography } from '../components/Typography';
 import { Button } from '../components/Button';
 import { colors, spacing, borderRadius } from '../theme/theme';
-import { DEPARTMENTS } from '../data/mockData';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { useQueue } from '../context/QueueContext';
 
 const { width } = Dimensions.get('window');
 const scannerSize = width * 0.7;
@@ -26,6 +26,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const ScanQRScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const { departments } = useQueue();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
@@ -51,8 +52,9 @@ export const ScanQRScreen: React.FC = () => {
       // If not a URL, check if the data itself matches a department name/id
       deptId = data;
     }
-
-    const department = DEPARTMENTS.find(d => d.id === deptId || d.name.toLowerCase() === data.toLowerCase());
+    
+    // Check against live departments first, then fallback to mock data names if needed for matching
+    const department = departments.find(d => d.id === deptId || d.name.toLowerCase() === data.toLowerCase());
 
     if (department) {
       Alert.alert(
