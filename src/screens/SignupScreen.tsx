@@ -30,8 +30,9 @@ export const SignupScreen: React.FC = () => {
     
     try {
       await signup(name, email, password);
-    } catch (e) {
-      setError('Could not create account');
+    } catch (e: any) {
+      setError(e.message || 'Could not create account');
+      console.error('Signup error details:', e);
     }
   };
 

@@ -76,13 +76,24 @@ router.all('/join', async (req, res) => {
   const twiml = new VoiceResponse();
   // In a real STT scenario, we'd use Twilio's <Gather input="speech">
   // For this version, we gather the name via recording or assume generic
-  twiml.say('Thank you. Now, select your department unit. Press 1 for OPD, 2 for Cardiology, 3 for Emergency.');
-  
-  twiml.gather({
-    input: 'dtmf',
-    numDigits: 1,
+  const gather = twiml.gather({
+    input: 'speech dtmf',
     action: '/api/ivr/finalize',
+    // If user presses digits, take one digit (1-3)
+    numDigits: 1,
+    // If user speaks, end gather after a short phrase
+    speechTimeout: 'auto',
+    timeout: 6,
+    // Helps Twilio speech recognition for our expected words
+    hints: 'opd, o p d, cardiology, cardiac, heart, emergency, general, general consultation, medicine, orthopedics, pediatrics, dermatology, ent, gynecology',
   });
+  gather.say(
+    'Which department do you want to visit? You can say OPD, Cardiology, Emergency, or General. ' +
+      'Or press 1 for OPD, 2 for Cardiology, 3 for Emergency.'
+  );
+
+  // If user doesn't press anything, repeat this step
+  twiml.redirect('/api/ivr/join');
 
   res.type('text/xml');
   res.send(twiml.toString());
@@ -91,12 +102,60 @@ router.all('/join', async (req, res) => {
 // POST /api/ivr/finalize
 router.all('/finalize', async (req, res) => {
   const digit = req.body.Digits;
+  const speech = req.body.SpeechResult;
   const phone = req.body.From;
   const twiml = new VoiceResponse();
 
   try {
-    const departments = await Department.find();
-    const targetDept = departments[parseInt(digit) - 1] || departments[0];
+    // Explicit digit -> department mapping (do NOT rely on DB ordering)
+    const choice = String(digit || '').trim();
+    const deptNameByDigit = {
+      '1': 'OPD',
+      '2': 'Cardiology',
+      '3': 'Emergency',
+    };
+
+    const normalize = (s) =>
+      String(s || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\p{L}\p{N}\s]/gu, '')
+        .replace(/\s+/g, ' ');
+
+    const speechNorm = normalize(speech);
+
+    const deptNameBySpeech = (() => {
+      if (!speechNorm) return null;
+      if (speechNorm.includes('opd') || speechNorm.includes('o p d')) return 'OPD';
+      if (speechNorm.includes('cardio') || speechNorm.includes('cardiac') || speechNorm.includes('heart'))
+        return 'Cardiology';
+      if (speechNorm.includes('emergency') || speechNorm.includes('er')) return 'Emergency';
+      if (speechNorm.includes('general')) return 'General Consultation';
+      if (speechNorm.includes('medicine')) return 'General Medicine';
+      if (speechNorm.includes('ortho')) return 'Orthopedics';
+      if (speechNorm.includes('pediatric') || speechNorm.includes('child')) return 'Pediatrics';
+      if (speechNorm.includes('derma') || speechNorm.includes('skin')) return 'Dermatology';
+      if (speechNorm === 'ent' || speechNorm.includes('ear') || speechNorm.includes('nose') || speechNorm.includes('throat'))
+        return 'ENT';
+      if (speechNorm.includes('gyn') || speechNorm.includes('gyne')) return 'Gynecology';
+      return null;
+    })();
+
+    const deptName = deptNameByDigit[choice] || deptNameBySpeech;
+    if (!deptName) {
+      twiml.say('Sorry, I did not get that. Please choose a department again.');
+      twiml.redirect('/api/ivr/join');
+      res.type('text/xml');
+      return res.send(twiml.toString());
+    }
+
+    const targetDept = await Department.findOne({ name: deptName });
+    if (!targetDept) {
+      twiml.say(`Sorry, ${deptName} is not available right now. Please choose another department.`);
+      twiml.redirect('/api/ivr/join');
+      res.type('text/xml');
+      return res.send(twiml.toString());
+    }
 
     // Generate Token Logic (Simplified duplicate of queueController logic)
     // In production, refactor this into a Service

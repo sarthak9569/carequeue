@@ -1,6 +1,8 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'http://10.214.184.93:5000';
+import { getSocketUrl } from '../config/backendHost';
+
+const SOCKET_URL = getSocketUrl();
 
 export const socket = io(SOCKET_URL, {
   transports: ['websocket'],

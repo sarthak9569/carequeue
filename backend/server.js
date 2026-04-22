@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const connectDB = require('./config/db');
@@ -21,10 +22,9 @@ const io = new Server(server, {
 
 app.set('io', io);
 app.use(cors());
+// Twilio webhooks send application/x-www-form-urlencoded by default
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-
-// Connect to MongoDB Atlas
-connectDB();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -32,9 +32,13 @@ app.use('/api/queue', require('./routes/queue'));
 app.use('/api/ivr', require('./routes/ivr'));
 
 // Health check
-app.get('/api/health', (req, res) =>
-  res.json({ status: 'Sanctuary Online', db: 'Atlas Connected' })
-);
+app.get('/api/health', (req, res) => {
+  const ok = mongoose.connection.readyState === 1;
+  res.json({
+    status: ok ? 'ok' : 'degraded',
+    db: ok ? `connected (${mongoose.connection.host})` : 'not connected',
+  });
+});
 
 io.on('connection', (socket) => {
   console.log('User connected to Sanctuary Socket:', socket.id);
@@ -42,6 +46,9 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`CareQueue Backend running on port ${PORT}`);
+
+connectDB().then(() => {
+  server.listen(PORT, () => {
+    console.log(`CareQueue Backend running on port ${PORT}`);
+  });
 });

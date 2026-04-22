@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { QueueEntry, apiService } from '../services/apiService';
 import { socket } from '../services/socketService';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { DEPARTMENTS } from '../data/mockData';
 
@@ -53,29 +53,36 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   useEffect(() => {
-    // Background notification handler
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
+    // Remote / full push APIs are not supported in Expo Go (SDK 53+); skip setup to avoid startup errors.
+    const isExpoGo =
+      Constants.appOwnership === 'expo' ||
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+    if (isExpoGo) return;
+
+    let cancelled = false;
+    void import('expo-notifications').then((Notifications) => {
+      if (cancelled) return;
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+      void (async () => {
+        if (!Device.isDevice || cancelled) return;
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        if (existingStatus !== 'granted') {
+          await Notifications.requestPermissionsAsync();
+        }
+      })();
     });
 
-    const setupNotifications = async () => {
-      if (Device.isDevice) {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
-        }
-      }
+    return () => {
+      cancelled = true;
     };
-
-    setupNotifications();
   }, []);
 
   const fetchInitialData = async () => {

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://10.214.184.93:5000/api';
+import { getApiBaseUrl } from '../config/backendHost';
+
+const BASE_URL = getApiBaseUrl();
 
 // Types
 export interface QueueEntry {
