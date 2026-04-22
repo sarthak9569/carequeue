@@ -7,8 +7,7 @@
 ---
 
 ## 🚀 Demo Links
-> [!NOTE]
-> Demo links will be provided soon. Stay tuned!
+- [Watch the CareQueue Demo on YouTube](https://youtube.com/shorts/eRV3PGDkB5s?si=GDYaNTKNXyD0JDbT)
 
 ---
 
