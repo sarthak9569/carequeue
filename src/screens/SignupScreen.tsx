@@ -46,14 +46,10 @@ export const SignupScreen: React.FC = () => {
           {/* Logo Area */}
           <View style={styles.header}>
             <Image 
-              source={require('../../assets/icon.png')} 
+              source={require('../../assets/logo.png')} 
               style={styles.logo} 
               resizeMode="contain" 
             />
-            <Typography variant="h1" align="center" style={styles.title}>CareQueue</Typography>
-            <Typography variant="caption" align="center" color={colors.muted} style={styles.subtitle}>
-              ESTABLISH YOUR SANCTUARY IDENTITY
-            </Typography>
           </View>
 
           {/* Signup Card */}
@@ -128,9 +124,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logo: {
-    width: 60,
-    height: 60,
-    marginBottom: spacing.s,
+    width: 200,
+    height: 200,
+    marginBottom: spacing.m,
   },
   title: {
     fontSize: 32,

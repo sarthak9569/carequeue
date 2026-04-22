@@ -46,14 +46,10 @@ export const LoginScreen: React.FC = () => {
           {/* Logo Area */}
           <View style={styles.header}>
             <Image 
-              source={require('../../assets/icon.png')} 
+              source={require('../../assets/logo.png')} 
               style={styles.logo} 
               resizeMode="contain" 
             />
-            <Typography variant="h2" align="center" style={styles.title}>CareQueue</Typography>
-            <Typography variant="caption" align="center" color={colors.muted} style={styles.subtitle}>
-              THE CLINICAL SANCTUARY
-            </Typography>
           </View>
 
           {/* Login Card */}
@@ -177,9 +173,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logo: {
-    width: 60,
-    height: 60,
-    marginBottom: spacing.s,
+    width: 220,
+    height: 220,
+    marginBottom: spacing.l,
   },
   title: {
     fontSize: 32,

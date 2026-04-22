@@ -54,7 +54,7 @@ export const ProfileScreen: React.FC = () => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Upload',
-          onPress: async (title) => {
+          onPress: async (title?: string) => {
             if (!title) return;
             try {
               await prescriptionService.uploadPrescription({

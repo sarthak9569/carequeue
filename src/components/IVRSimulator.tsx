@@ -21,17 +21,11 @@ export const IVRSimulator: React.FC = () => {
   
   const { generateToken, departments } = useQueue();
 
-  // Hide IVR for Doctors
-  if (user?.role === 'doctor') return null;
-
   const inputRef = useRef<TextInput>(null);
-
-  // Pan Responder for Movable Button
   const pan = useRef(new Animated.ValueXY()).current;
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only trigger pan if user moves finger significantly (so taps still work)
         return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
       },
       onPanResponderGrant: () => {
@@ -175,6 +169,9 @@ export const IVRSimulator: React.FC = () => {
       setTimeout(() => closeAndReset(), 3000);
     }
   };
+
+  // Hide IVR for Doctors
+  if (user?.role === 'doctor') return null;
 
   return (
     <>
