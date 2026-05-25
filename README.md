@@ -40,7 +40,7 @@
 ### 2. Clone & Install
 ```bash
 git clone https://github.com/sarthak9569/carequeue.git
-cd carequeue
+
 npm install
 cd backend
 npm install
