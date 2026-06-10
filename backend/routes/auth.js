@@ -2,23 +2,40 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Hospital = require('../models/Hospital');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role, hospitalName, hospitalCode } = req.body;
   try {
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ 
+      name, 
+      email, 
+      password, 
+      role: role || 'patient' 
+    });
+
+    if (user && role === 'hospital_admin') {
+      await Hospital.create({
+        name: hospitalName,
+        code: hospitalCode,
+        adminId: user._id,
+        email: email
+      });
+    }
+
     if (user) {
       res.status(201).json({
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         token: generateToken(user._id),
       });
     }
@@ -38,6 +55,7 @@ router.post('/login', async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         token: generateToken(user._id),
       });
     } else {
@@ -127,6 +145,7 @@ router.post('/verify-otp-login', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
       token: generateToken(user._id),
     });
 

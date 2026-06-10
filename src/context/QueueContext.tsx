@@ -13,7 +13,7 @@ interface QueueContextType {
     completed: number;
     byDepartment: { name: string; count: number }[];
   };
-  generateToken: (data: { name: string; phone?: string; departmentId: string; source: string; userId?: string }) => Promise<QueueEntry>;
+  generateToken: (data: { name: string; phone?: string; departmentId: string; source: string; userId?: string; hospitalId?: string }) => Promise<QueueEntry>;
   updateTokenStatus: (tokenId: string, newStatus: QueueEntry['status']) => Promise<void>;
   resetQueue: () => Promise<void>;
   callNextInDepartment: (departmentId: string) => Promise<QueueEntry | null>;
@@ -179,7 +179,8 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         patient_name: data.name,
         phone: data.phone,
         department_id: data.departmentId,
-        source: data.source
+        source: data.source,
+        hospital_id: data.hospitalId
       });
       
       const newEntry: QueueEntry = {

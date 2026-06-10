@@ -13,6 +13,7 @@ import { colors, spacing, borderRadius } from '../theme/theme';
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
   loading?: boolean;
   icon?: React.ReactNode | keyof typeof Ionicons.glyphMap;
   iconPosition?: 'left' | 'right';
@@ -21,6 +22,7 @@ interface ButtonProps extends TouchableOpacityProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   variant = 'primary',
+  size = 'medium',
   loading = false,
   icon,
   iconPosition = 'left',
@@ -64,6 +66,8 @@ export const Button: React.FC<ButtonProps> = ({
         styles.button,
         { backgroundColor: getBackgroundColor() },
         variant === 'outline' && styles.outline,
+        size === 'small' && styles.small,
+        size === 'large' && styles.large,
         style,
       ]}
       disabled={disabled || loading}
@@ -109,6 +113,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+  },
+  small: {
+    paddingVertical: 8,
+    paddingHorizontal: spacing.m,
+  },
+  large: {
+    paddingVertical: 18,
+    paddingHorizontal: spacing.xl,
   },
   outline: {
     borderWidth: 1.5,

@@ -8,6 +8,8 @@ interface InputProps extends TextInputProps {
   label?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   error?: string;
+  containerStyle?: any;
+  hideLabel?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -15,6 +17,8 @@ export const Input: React.FC<InputProps> = ({
   icon,
   error,
   style,
+  containerStyle,
+  hideLabel,
   secureTextEntry,
   ...props
 }) => {
@@ -22,8 +26,8 @@ export const Input: React.FC<InputProps> = ({
   const isPasswordInput = secureTextEntry;
 
   return (
-    <View style={[styles.container, style]}>
-      {label && (
+    <View style={[styles.container, containerStyle]}>
+      {label && !hideLabel && (
         <Typography variant="caption" weight="600" color={colors.muted} style={styles.label}>
           {label.toUpperCase()}
         </Typography>
@@ -38,7 +42,7 @@ export const Input: React.FC<InputProps> = ({
           />
         )}
         <TextInput
-          style={styles.input}
+          style={[styles.input, style]}
           placeholderTextColor={colors.muted}
           secureTextEntry={isPasswordInput && !isPasswordVisible}
           {...props}

@@ -43,22 +43,43 @@ const DEPT_ICONS: Record<string, { icon: any, lib: any }> = {
 export const JoinQueueScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<JoinQueueRouteProp>();
-  const { generateToken, stats, departments } = useQueue();
+  const { generateToken, stats } = useQueue();
   const { user } = useAuth();
   
+  const [localDepts, setLocalDepts] = useState<any[]>([]);
+  const [hospitalId, setHospitalId] = useState<string | null>(null);
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [queueToken, setQueueToken] = useState<any>(null);
-  const hasLiveDepartments = departments.length > 0;
-  const selectedDepartmentExists = !!selectedDeptId && departments.some((d) => d.id === selectedDeptId);
 
   useEffect(() => {
-    if (route.params?.departmentId) {
-      setSelectedDeptId(route.params.departmentId);
+    if (route.params?.hospitalId) {
+      setHospitalId(route.params.hospitalId);
+      fetchHospitalDepartments(route.params.hospitalId);
     }
   }, [route.params]);
+
+  const fetchHospitalDepartments = async (id: string) => {
+    try {
+      setLoading(true);
+      const res = await apiService.getDepartments(id);
+      if (res.data && res.data.data) {
+        setLocalDepts(res.data.data.map((d: any) => ({
+          id: d._id,
+          name: d.name
+        })));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasLiveDepartments = localDepts.length > 0;
+  const selectedDepartmentExists = !!selectedDeptId && localDepts.some((d) => d.id === selectedDeptId);
 
   const handleJoinQueue = async () => {
     if (!hasLiveDepartments) {
@@ -88,7 +109,8 @@ export const JoinQueueScreen: React.FC = () => {
         phone: phoneNumber,
         departmentId: selectedDeptId,
         source: 'mobile',
-        userId: user?.id
+        userId: user?.id,
+        hospitalId: hospitalId || undefined
       });
       
       setQueueToken({
@@ -152,8 +174,8 @@ export const JoinQueueScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.grid}>
-          {departments.length > 0 
-            ? departments.map(renderDeptCard)
+          {localDepts.length > 0 
+            ? localDepts.map(renderDeptCard)
             : DEPARTMENTS.map(renderDeptCard) // UI-only placeholder cards until API data arrives
           }
         </View>

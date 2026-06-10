@@ -8,23 +8,53 @@ import { Layout } from '../components/Layout';
 import { Typography } from '../components/Typography';
 import { Card } from '../components/Card';
 import { colors, spacing, borderRadius, shadows } from '../theme/theme';
-import { RootStackParamList } from '../navigation/RootNavigator';
+import { RootStackParamList, TabParamList } from '../navigation/RootNavigator';
 import { useQueue } from '../context/QueueContext';
 import { useAuth } from '../context/AuthContext';
+import { apiService } from '../services/apiService';
+import { Input } from '../components/Input';
+import { Badge } from '../components/StatusUI';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList & TabParamList>;
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { stats } = useQueue();
+  const { tokens, stats } = useQueue();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [hospitals, setHospitals] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pincode, setPincode] = useState('');
+
+  // Get active tokens for the current user
+  const activeTokens = tokens.filter(t => t.status === 'waiting' || t.status === 'current');
+
+  React.useEffect(() => {
+    fetchHospitals();
+  }, []);
+
+  const fetchHospitals = async () => {
+    try {
+      const res = await apiService.getHospitals();
+      if (res.data && res.data.data) {
+        setHospitals(res.data.data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise(r => setTimeout(r, 1000));
+    await fetchHospitals();
     setRefreshing(false);
   };
+
+  const filteredHospitals = hospitals.filter(h => {
+    const matchName = h.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchPincode = pincode ? h.pincode?.includes(pincode) : true;
+    return matchName && matchPincode;
+  });
 
   return (
     <Layout>
@@ -32,17 +62,47 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.headerContent}>
           <View style={styles.titleRow}>
             <View>
-              <Typography variant="h2" style={styles.welcomeText}>Welcome back,</Typography>
-              <Typography variant="h3" color={colors.surface}>{user?.name}</Typography>
+              <Typography variant="caption" color="rgba(255,255,255,0.7)" weight="700">CITY SANCTUARY</Typography>
+              <Typography variant="h2" style={styles.welcomeText}>Hello, {user?.name?.split(' ')[0]}</Typography>
             </View>
             <TouchableOpacity 
-              style={styles.settingsBtn}
-              onPress={() => navigation.navigate('Settings' as any)}
+              style={styles.profileBtn}
+              onPress={() => navigation.navigate('Profile' as any)}
             >
-              <Ionicons name="settings-outline" size={24} color={colors.surface} />
+              <Image 
+                source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=0ea5a0&color=fff` }} 
+                style={styles.avatarImg} 
+              />
             </TouchableOpacity>
           </View>
-          <Typography variant="body" color="#cbd5e1" style={styles.subtext}>The clinical sanctuary is prepared. Manage your patient flow with precision and tranquility today.</Typography>
+
+          {/* Search Section */}
+          <View style={styles.searchSection}>
+            <View style={styles.searchBarWrapper}>
+              <Ionicons name="search" size={20} color="#94a3b8" />
+              <Input 
+                placeholder="Search hospitals..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                containerStyle={styles.searchInner}
+                style={styles.searchInput}
+                hideLabel
+              />
+            </View>
+            <View style={styles.pincodeWrapper}>
+              <Ionicons name="location" size={18} color={colors.accent} />
+              <Input 
+                placeholder="Pincode"
+                value={pincode}
+                onChangeText={setPincode}
+                containerStyle={styles.pincodeInner}
+                style={styles.searchInput}
+                hideLabel
+                keyboardType="numeric"
+                maxLength={6}
+              />
+            </View>
+          </View>
         </View>
       </View>
 
@@ -50,90 +110,95 @@ export const HomeScreen: React.FC = () => {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accent]} />}
       >
-        {/* Main Stats Row */}
-        <View style={styles.statsRow}>
-          <Card variant="premium" style={styles.mainStatCard}>
-            <View style={styles.statIconBadge}>
-              <Ionicons name="people" size={20} color={colors.accent} />
-            </View>
-            <View>
-              <Typography variant="caption" weight="600" color="#94a3b8">LIVE QUEUE</Typography>
-              <View style={styles.statValueRow}>
-                <Typography variant="h2" color={colors.surface}>{stats.waiting}</Typography>
-              </View>
-            </View>
-          </Card>
+        {/* Active Tokens Quick View */}
+        {activeTokens.length > 0 && (
+          <View style={styles.activeSection}>
+            <Typography variant="h3" style={styles.sectionTitle}>Your Active Appointments</Typography>
+            {activeTokens.map(token => (
+              <TouchableOpacity 
+                key={token.id} 
+                onPress={() => navigation.navigate('MyStatus', { queueNumber: token.queue_number, deptId: token.department.id })}
+              >
+                <Card variant="premium" style={styles.tokenCard}>
+                  <View style={styles.tokenHeader}>
+                    <Typography variant="h1" color={colors.surface}>{token.queue_number}</Typography>
+                    <Badge label={token.status.toUpperCase()} variant={token.status === 'current' ? 'success' : 'warning'} />
+                  </View>
+                  <Typography variant="body" color="#cbd5e1" weight="600">{token.department.name}</Typography>
+                  <View style={styles.tokenFooter}>
+                    <Typography variant="caption" color="rgba(255,255,255,0.6)">Track live position in queue</Typography>
+                    <Ionicons name="chevron-forward" size={16} color={colors.surface} />
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-          <Card variant="elevated" style={styles.mainStatCard}>
-            <View style={styles.statIconBadgeAccent}>
-              <Ionicons name="checkmark-done" size={20} color={colors.success} />
-            </View>
-            <View>
-              <Typography variant="caption" weight="600" color={colors.muted}>COMPLETED</Typography>
-              <View style={styles.statValueRow}>
-                <Typography variant="h2" color={colors.primary}>{stats.completed}</Typography>
-              </View>
-            </View>
-          </Card>
-        </View>
-
-        {/* Analytics Card */}
-        <Card style={styles.analyticsCard}>
-          <View style={styles.analyticsHeader}>
-            <Typography variant="h3" color={colors.primary}>Real-time Analytics</Typography>
-            <Ionicons name="analytics-outline" size={20} color={colors.muted} />
+        <View style={styles.listingSection}>
+          <View style={styles.sectionHeader}>
+            <Typography variant="h3" style={styles.sectionTitle}>Registered Facilities</Typography>
+            <TouchableOpacity><Typography variant="caption" color={colors.accent} weight="700">See All</Typography></TouchableOpacity>
           </View>
           
-          <View style={styles.analyticsGrid}>
-            <View style={styles.analyticsItem}>
-              <Typography variant="caption" weight="600" color={colors.muted}>AVG CONSULTATION TIME</Typography>
-              <Typography variant="h2">14<Typography variant="body" color={colors.muted}>m</Typography></Typography>
-              <Typography variant="caption" color={colors.muted}>Optimal Range</Typography>
-            </View>
-            <View style={styles.analyticsDivider} />
-            <View style={styles.analyticsItem}>
-              <Typography variant="caption" weight="600" color={colors.muted}>CURRENT SYSTEM LOAD</Typography>
-              <Typography variant="h2" color={colors.success}>Normal</Typography>
-              <Typography variant="caption" color={colors.muted}>8 departments active</Typography>
-            </View>
-          </View>
-
-          <View style={styles.resourceUsageRow}>
-            <Typography variant="caption" weight="600" color={colors.muted}>RESOURCE USAGE</Typography>
-            <Typography variant="caption" weight="700" color={colors.primary}>82%</Typography>
-          </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: '82%' }]} />
-          </View>
-        </Card>
-
-        {/* Action Card */}
-        <Card variant="premium" style={styles.actionCard}>
-          <View style={styles.actionIconCircle}>
-            <MaterialCommunityIcons name="heart-pulse" size={40} color={colors.accent} />
-          </View>
-          <Typography variant="h2" align="center" color={colors.surface} style={styles.actionTitle}>Begin Your Consultation</Typography>
-          <Typography variant="body" align="center" color="#94a3b8" style={styles.actionSubtitle}>
-            Step into the live clinical flow. Select your specialty and receive your medical token instantly.
-          </Typography>
-          <TouchableOpacity 
-            style={styles.generateButton}
-            onPress={() => navigation.navigate('JoinQueue' as any)}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            style={styles.hospitalScroll}
+            contentContainerStyle={styles.hospitalScrollContent}
           >
-            <Typography variant="button" color={colors.surface}>Get Medical Token</Typography>
-            <Ionicons name="arrow-forward" size={18} color={colors.surface} style={{ marginLeft: 8 }} />
-          </TouchableOpacity>
-        </Card>
+            {filteredHospitals.length > 0 ? filteredHospitals.map((hosp) => (
+              <TouchableOpacity 
+                key={hosp._id} 
+                onPress={() => navigation.navigate('JoinQueue', { hospitalId: hosp._id })}
+              >
+                <Card style={styles.hospitalCard}>
+                  <View style={styles.hospIconLarge}>
+                    <MaterialCommunityIcons name="hospital-building" size={40} color={colors.accent} />
+                  </View>
+                  <Typography weight="800" numberOfLines={1} style={{ marginTop: spacing.s }}>{hosp.name}</Typography>
+                  <Typography variant="caption" color={colors.muted}>{hosp.type || 'Private'}</Typography>
+                  <View style={styles.hospBadge}>
+                    <Typography variant="caption" color={colors.accent} weight="700">Join Queue</Typography>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            )) : (
+              <Typography variant="caption" color={colors.muted} style={{ padding: spacing.m }}>No hospitals found in this area.</Typography>
+            )}
+          </ScrollView>
+        </View>
 
-        {/* Patient Satisfaction */}
-        <Card style={styles.satisfactionCard}>
-          <View style={styles.satisfactionHeader}>
-            <View style={styles.satisfactionIcon}>
-              <Ionicons name="trending-up" size={20} color={colors.accent} />
+        {/* Clinical Specialties */}
+        <Typography variant="h3" style={[styles.sectionTitle, { marginTop: spacing.l }]}>Browse Specialties</Typography>
+        <View style={styles.specialtyContainer}>
+          {[
+            { name: 'Cardiology', icon: 'heart-pulse', color: '#ef4444' },
+            { name: 'Pediatrics', icon: 'baby-face-outline', color: '#3b82f6' },
+            { name: 'Orthopedics', icon: 'bone', color: '#8b5cf6' },
+            { name: 'General', icon: 'stethoscope', color: '#10b981' }
+          ].map((item) => (
+            <TouchableOpacity key={item.name} style={styles.specialtyItem} onPress={() => navigation.navigate('JoinQueue' as any)}>
+              <Card style={styles.specialtyCard}>
+                <MaterialCommunityIcons name={item.icon as any} size={30} color={item.color} />
+                <Typography variant="caption" weight="700" style={{ marginTop: 8 }}>{item.name}</Typography>
+              </Card>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Overall System Load */}
+        <Card style={styles.statusCard}>
+          <Typography variant="h4" color={colors.primary}>Sanctuary Status</Typography>
+          <View style={styles.statusStats}>
+            <View style={styles.statItem}>
+              <Typography variant="h2">{stats.waiting + 24}</Typography>
+              <Typography variant="caption" color={colors.muted}>ACTIVE PATIENTS</Typography>
             </View>
-            <View>
-              <Typography variant="caption" weight="600" color={colors.muted}>PATIENT SATISFACTION</Typography>
-              <Typography variant="h2">98% <Typography variant="caption" color={colors.success}>Record High</Typography></Typography>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Typography variant="h2">Normal</Typography>
+              <Typography variant="caption" color={colors.success} weight="700">SYSTEM LOAD</Typography>
             </View>
           </View>
         </Card>
@@ -147,8 +212,9 @@ const styles = StyleSheet.create({
   topHeader: {
     paddingTop: spacing.xl,
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    ...shadows.soft,
   },
   headerContent: {
     padding: spacing.l,
@@ -158,153 +224,167 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.m,
-  },
-  settingsBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: spacing.l,
   },
   welcomeText: {
     fontSize: 28,
     fontWeight: '800',
     color: colors.surface,
-    marginBottom: spacing.xs,
   },
-  subtext: {
-    lineHeight: 20,
-    maxWidth: '85%',
-  },
-  statsRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: spacing.m,
-  },
-  mainStatCard: {
-    width: '48%',
-    padding: spacing.m,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    gap: spacing.s,
-  },
-  statIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statIconBadgeAccent: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  percentChange: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  analyticsCard: {
-    padding: spacing.l,
-    marginBottom: spacing.m,
-  },
-  analyticsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.l,
-  },
-  analyticsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.l,
-  },
-  analyticsItem: {
-    flex: 1,
-  },
-  analyticsDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.m,
-  },
-  resourceUsageRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.s,
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: colors.background,
-    borderRadius: 4,
+  profileBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
   },
-  progressBarFill: {
+  avatarImg: {
+    width: '100%',
     height: '100%',
-    backgroundColor: colors.accent,
   },
-  actionCard: {
-    padding: spacing.xl,
+  searchSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+  },
+  searchBarWrapper: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingHorizontal: spacing.m,
+    height: 56,
+    ...shadows.soft,
+  },
+  pincodeWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingHorizontal: spacing.s,
+    height: 56,
+    ...shadows.soft,
+  },
+  pincodeInner: {
+    flex: 1,
+    borderBottomWidth: 0,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  searchInner: {
+    flex: 1,
+    borderBottomWidth: 0,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  searchInput: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.primary,
+    marginBottom: spacing.m,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.m,
-    borderRadius: 24,
   },
-  actionIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(14, 165, 160, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  activeSection: {
+    marginTop: spacing.m,
     marginBottom: spacing.l,
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 160, 0.3)',
   },
-  actionTitle: {
+  tokenCard: {
+    padding: spacing.l,
+    borderRadius: 20,
+    marginBottom: spacing.m,
+  },
+  tokenHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.s,
-    fontWeight: '800',
   },
-  actionSubtitle: {
-    marginBottom: spacing.xl,
+  tokenFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.m,
+    paddingTop: spacing.m,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  listingSection: {
+    marginBottom: spacing.l,
+  },
+  hospitalScroll: {
+    marginHorizontal: -spacing.m,
+  },
+  hospitalScrollContent: {
     paddingHorizontal: spacing.m,
-    lineHeight: 22,
+    paddingBottom: spacing.s,
   },
-  generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.accent,
-    paddingHorizontal: 40,
-    paddingVertical: 18,
-    borderRadius: 14,
-    ...shadows.accent,
-  },
-  satisfactionCard: {
+  hospitalCard: {
+    width: 180,
     padding: spacing.m,
-  },
-  satisfactionHeader: {
-    flexDirection: 'row',
+    marginRight: spacing.m,
     alignItems: 'center',
-    gap: spacing.m,
+    borderRadius: 20,
+    ...shadows.soft,
   },
-  satisfactionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.m,
+  hospIconLarge: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: colors.lightAccent,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.s,
+  },
+  hospBadge: {
+    marginTop: spacing.m,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(14, 165, 160, 0.1)',
+  },
+  specialtyContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  specialtyItem: {
+    width: '48%',
+    marginBottom: spacing.m,
+  },
+  specialtyCard: {
+    alignItems: 'center',
+    padding: spacing.m,
+    borderRadius: 16,
+  },
+  statusCard: {
+    padding: spacing.l,
+    marginTop: spacing.m,
+    borderRadius: 20,
+  },
+  statusStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.m,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.border,
   },
 });

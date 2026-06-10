@@ -5,6 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
 import { Typography } from '../components/Typography';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/StatusUI';
@@ -21,6 +24,7 @@ export const DoctorDashboard: React.FC = () => {
     skipPatient 
   } = useQueue();
   const { logout, user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   
   const [deptId, setDeptId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -138,6 +142,9 @@ export const DoctorDashboard: React.FC = () => {
             <TouchableOpacity onPress={() => setShowDeptSelector(true)} style={styles.deptBtn}>
               <Typography variant="caption" color={colors.surface} weight="700">{currentDept.name}</Typography>
               <Ionicons name="chevron-down" size={16} color={colors.surface} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('LeaveManagement')} style={{ marginLeft: spacing.m }}>
+              <Ionicons name="briefcase-outline" size={24} color={colors.surface} />
             </TouchableOpacity>
             <TouchableOpacity onPress={logout} style={{ marginLeft: spacing.m }}>
               <Ionicons name="log-out-outline" size={24} color={colors.surface} />

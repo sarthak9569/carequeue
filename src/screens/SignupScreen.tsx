@@ -17,22 +17,29 @@ export const SignupScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { signup, isLoading } = useAuth();
   
+  const [regType, setRegType] = useState<'PATIENT' | 'HOSPITAL'>('PATIENT');
   const [name, setName] = useState('');
+  const [hospitalName, setHospitalName] = useState('');
+  const [hospitalCode, setHospitalCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSignup = async () => {
-    if (!name || !email || !password) {
-      setError('Please fill in all fields');
+    if (!name || !email || !password || (regType === 'HOSPITAL' && (!hospitalName || !hospitalCode))) {
+      setError('Please fill in all required fields');
       return;
     }
     
     try {
-      await signup(name, email, password);
+      // In a real app, you'd update the signup function to accept role and hospital details
+      await signup(name, email, password, { 
+        role: regType === 'HOSPITAL' ? 'hospital_admin' : 'patient',
+        hospitalName,
+        hospitalCode
+      });
     } catch (e: any) {
       setError(e.message || 'Could not create account');
-      console.error('Signup error details:', e);
     }
   };
 
@@ -54,10 +61,46 @@ export const SignupScreen: React.FC = () => {
 
           {/* Signup Card */}
           <View style={styles.card}>
-            <Typography variant="h3" style={styles.cardTitle}>Register Identity</Typography>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, regType === 'PATIENT' && styles.activeToggle]} 
+                onPress={() => { setRegType('PATIENT'); setError(''); }}
+              >
+                <Typography variant="caption" weight="700" color={regType === 'PATIENT' ? colors.surface : colors.muted}>PATIENT</Typography>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, regType === 'HOSPITAL' && styles.activeToggle]} 
+                onPress={() => { setRegType('HOSPITAL'); setError(''); }}
+              >
+                <Typography variant="caption" weight="700" color={regType === 'HOSPITAL' ? colors.surface : colors.muted}>HOSPITAL</Typography>
+              </TouchableOpacity>
+            </View>
+
+            <Typography variant="h3" style={styles.cardTitle}>
+              {regType === 'PATIENT' ? 'Patient Registration' : 'Hospital Onboarding'}
+            </Typography>
             
+            {regType === 'HOSPITAL' && (
+              <>
+                <Input
+                  label="Legal Hospital Name"
+                  placeholder="City General Hospital"
+                  icon="business-outline"
+                  value={hospitalName}
+                  onChangeText={setHospitalName}
+                />
+                <Input
+                  label="Desired Hospital Code"
+                  placeholder="e.g. CGH-NY"
+                  icon="barcode-outline"
+                  value={hospitalCode}
+                  onChangeText={setHospitalCode}
+                />
+              </>
+            )}
+
             <Input
-              label="Full Name"
+              label={regType === 'PATIENT' ? "Full Name" : "Admin Name"}
               placeholder="John Doe"
               icon="person-outline"
               value={name}
@@ -66,7 +109,7 @@ export const SignupScreen: React.FC = () => {
 
             <Input
               label="Email Address"
-              placeholder="name@clinic.com"
+              placeholder="name@example.com"
               icon="mail-outline"
               value={email}
               onChangeText={setEmail}
@@ -75,7 +118,7 @@ export const SignupScreen: React.FC = () => {
             />
             
             <Input
-              label="Secret Key (Password)"
+              label="Password"
               placeholder="••••••••"
               icon="lock-closed-outline"
               value={password}
@@ -90,7 +133,7 @@ export const SignupScreen: React.FC = () => {
             ) : null}
 
             <Button
-              title="Establish Identity"
+              title={regType === 'PATIENT' ? "Establish Identity" : "Onboard Facility"}
               onPress={handleSignup}
               loading={isLoading}
               style={styles.signupButton}
@@ -102,7 +145,7 @@ export const SignupScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
           >
             <Typography variant="caption" weight="600" color={colors.muted}>
-              ALREADY HAVE ACCESS? <Typography variant="caption" weight="800" color={colors.accent}>INITIALIZE PORTAL</Typography>
+              ALREADY REGISTERED? <Typography variant="caption" weight="800" color={colors.accent}>SIGN IN HERE</Typography>
             </Typography>
           </TouchableOpacity>
         </ScrollView>
@@ -150,8 +193,24 @@ const styles = StyleSheet.create({
     borderTopColor: colors.accent,
   },
   cardTitle: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.l,
     color: colors.primary,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: borderRadius.m,
+    padding: 4,
+    marginBottom: spacing.l,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: borderRadius.s,
+  },
+  activeToggle: {
+    backgroundColor: colors.primary,
   },
   signupButton: {
     marginTop: spacing.m,

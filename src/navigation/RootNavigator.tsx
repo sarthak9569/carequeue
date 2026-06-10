@@ -16,8 +16,15 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { VerifyOtpScreen } from '../screens/VerifyOtpScreen';
+import { HospitalProfileScreen } from '../screens/HospitalProfileScreen';
+import { DepartmentManagementScreen } from '../screens/DepartmentManagementScreen';
+import { DoctorManagementScreen } from '../screens/DoctorManagementScreen';
+import { ReportsScreen } from '../screens/ReportsScreen';
+import { LeaveManagementScreen } from '../screens/LeaveManagementScreen';
 
 import { TokenHistoryScreen } from '../screens/TokenHistoryScreen';
+import { StaffManagementScreen } from '../screens/StaffManagementScreen';
+import { ScheduleManagementScreen } from '../screens/ScheduleManagementScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 
@@ -34,6 +41,13 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   Settings: undefined;
   Profile: undefined;
+  HospitalProfile: undefined;
+  DepartmentManagement: undefined;
+  DoctorManagement: undefined;
+  StaffManagement: undefined;
+  ScheduleManagement: undefined;
+  Reports: undefined;
+  LeaveManagement: undefined;
 };
 
 export type AuthStackParamList = {
@@ -45,7 +59,7 @@ export type AuthStackParamList = {
 
 export type TabParamList = {
   Home: undefined;
-  JoinQueue: { departmentId?: string } | undefined;
+  JoinQueue: { departmentId?: string; hospitalId?: string } | undefined;
   History: undefined;
   MyStatus: { queueNumber?: string; deptId?: string } | undefined;
   ScanQR: undefined;
@@ -130,7 +144,11 @@ export const RootNavigator = () => {
       {isAuthenticated ? (
         <Stack.Navigator 
           screenOptions={{ headerShown: false }}
-          initialRouteName={user?.role === 'doctor' ? 'DoctorDashboard' : 'MainTabs'}
+          initialRouteName={
+            user?.role === 'hospital_admin' || user?.role === 'department_admin' 
+              ? 'AdminDashboard' 
+              : user?.role === 'doctor' ? 'DoctorDashboard' : 'MainTabs'
+          }
         >
           <Stack.Screen name="MainTabs" component={TabNavigator} />
           <Stack.Screen name="IVR" component={IVRScreen} />
@@ -138,6 +156,13 @@ export const RootNavigator = () => {
           <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="HospitalProfile" component={HospitalProfileScreen} />
+          <Stack.Screen name="DepartmentManagement" component={DepartmentManagementScreen} />
+          <Stack.Screen name="DoctorManagement" component={DoctorManagementScreen} />
+          <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
+          <Stack.Screen name="ScheduleManagement" component={ScheduleManagementScreen} />
+          <Stack.Screen name="Reports" component={ReportsScreen} />
+          <Stack.Screen name="LeaveManagement" component={LeaveManagementScreen} />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />

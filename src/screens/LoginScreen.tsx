@@ -17,20 +17,29 @@ export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading } = useAuth();
   
-  const [isDoctor, setIsDoctor] = useState(false);
+  const [activePortal, setActivePortal] = useState<'PATIENT' | 'HOSPITAL'>('PATIENT');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [email, setEmail] = useState('');
   const [docID, setDocID] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (isDoctor && !docID || !isDoctor && !email || !password) {
+    if (activePortal === 'PATIENT' && !email || activePortal === 'HOSPITAL' && !isAdmin && !docID || !password) {
       setError('Please fill in all identity fields');
       return;
     }
     
     try {
-      await login(isDoctor ? { docID, password } : { email, password });
+      if (activePortal === 'PATIENT') {
+        await login({ email, password });
+      } else {
+        if (isAdmin) {
+          await login({ email, password });
+        } else {
+          await login({ docID, password });
+        }
+      }
     } catch (e: any) {
       setError(e.message || 'Invalid credentials');
     }
@@ -56,25 +65,42 @@ export const LoginScreen: React.FC = () => {
           <View style={styles.card}>
             <View style={styles.toggleRow}>
               <TouchableOpacity 
-                style={[styles.toggleBtn, !isDoctor && styles.activeToggle]} 
-                onPress={() => { setIsDoctor(false); setError(''); }}
+                style={[styles.toggleBtn, activePortal === 'PATIENT' && styles.activeToggle]} 
+                onPress={() => { setActivePortal('PATIENT'); setError(''); }}
               >
-                <Typography variant="caption" weight="700" color={!isDoctor ? colors.surface : colors.muted}>PATIENT</Typography>
+                <Typography variant="caption" weight="700" color={activePortal === 'PATIENT' ? colors.surface : colors.muted}>PATIENT</Typography>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.toggleBtn, isDoctor && styles.activeToggle]} 
-                onPress={() => { setIsDoctor(true); setError(''); }}
+                style={[styles.toggleBtn, activePortal === 'HOSPITAL' && styles.activeToggle]} 
+                onPress={() => { setActivePortal('HOSPITAL'); setError(''); }}
               >
-                <Typography variant="caption" weight="700" color={isDoctor ? colors.surface : colors.muted}>DOCTOR</Typography>
+                <Typography variant="caption" weight="700" color={activePortal === 'HOSPITAL' ? colors.surface : colors.muted}>HOSPITAL</Typography>
               </TouchableOpacity>
             </View>
 
             <Typography variant="h3" style={styles.cardTitle}>Identity Verification</Typography>
             
-            {!isDoctor ? (
+            {activePortal === 'HOSPITAL' && (
+              <View style={styles.subToggleContainer}>
+                <TouchableOpacity 
+                  style={[styles.subToggleBtn, !isAdmin && styles.subToggleActive]} 
+                  onPress={() => setIsAdmin(false)}
+                >
+                  <Typography variant="caption" weight="700" color={!isAdmin ? colors.primary : colors.muted}>DOCTOR</Typography>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.subToggleBtn, isAdmin && styles.subToggleActive]} 
+                  onPress={() => setIsAdmin(true)}
+                >
+                  <Typography variant="caption" weight="700" color={isAdmin ? colors.primary : colors.muted}>ADMIN</Typography>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {activePortal === 'PATIENT' || (activePortal === 'HOSPITAL' && isAdmin) ? (
               <Input
                 label="Email Address"
-                placeholder="name@clinic.com"
+                placeholder={activePortal === 'PATIENT' ? "name@example.com" : "admin@hospital.com"}
                 icon="mail-outline"
                 value={email}
                 onChangeText={setEmail}
@@ -107,7 +133,7 @@ export const LoginScreen: React.FC = () => {
               </Typography>
             ) : null}
             
-            {!isDoctor && (
+            {!isAdmin && activePortal === 'PATIENT' && (
               <TouchableOpacity 
                 style={styles.forgotPasswordContainer}
                 onPress={() => navigation.navigate('ForgotPassword')}
@@ -127,7 +153,7 @@ export const LoginScreen: React.FC = () => {
               iconPosition="right"
             />
 
-            {isDoctor && (
+            {activePortal === 'HOSPITAL' && !isAdmin && (
               <Typography variant="caption" align="center" color={colors.accent} style={{ marginTop: spacing.m }}>
                 Hint: Any DocID + Password 'doctor123'
               </Typography>
@@ -146,7 +172,7 @@ export const LoginScreen: React.FC = () => {
             </View>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.signupLink}
             onPress={() => navigation.navigate('Signup')}
           >
@@ -199,8 +225,22 @@ const styles = StyleSheet.create({
     borderTopColor: colors.accent,
   },
   cardTitle: {
-    marginBottom: spacing.l,
+    marginBottom: spacing.m,
     color: colors.primary,
+  },
+  subToggleContainer: {
+    flexDirection: 'row',
+    marginBottom: spacing.l,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  subToggleBtn: {
+    paddingVertical: 8,
+    marginRight: spacing.m,
+  },
+  subToggleActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
   },
   toggleRow: {
     flexDirection: 'row',

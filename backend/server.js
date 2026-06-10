@@ -37,6 +37,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/queue', require('./routes/queue'));
 app.use('/api/ivr', require('./routes/ivr'));
 app.use('/api/prescriptions', require('./routes/prescriptions'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Health check
 app.get('/api/health', (req, res) => {
