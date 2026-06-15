@@ -7,10 +7,42 @@ const Leave = require('../models/Leave');
 const Schedule = require('../models/Schedule');
 const AuditLog = require('../models/AuditLog');
 
-// Hospital Listing
+// Hospital Discovery (City tiles)
+exports.getDiscoveryData = async (req, res) => {
+  try {
+    const discovery = await Hospital.aggregate([
+      { $match: { status: 'Active' } },
+      { $group: { _id: '$city', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    res.status(200).json({ success: true, data: discovery });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// Hospital Listing & Search
 exports.getHospitals = async (req, res) => {
   try {
-    const hospitals = await Hospital.find({}).select('name code address type website contact');
+    const { city, pincode, department, search } = req.query;
+    let query = { status: 'Active' };
+
+    if (city) query.city = new RegExp(city, 'i');
+    if (pincode) query.pincode = pincode;
+    if (search) query.$text = { $search: search };
+
+    let hospitals = await Hospital.find(query).select('name code address city state pincode type website contact');
+
+    // Filter by department if provided
+    if (department) {
+      const hospitalIds = await Department.find({ 
+        name: new RegExp(department, 'i'), 
+        status: 'Active' 
+      }).distinct('hospital');
+      
+      hospitals = hospitals.filter(h => hospitalIds.some(id => id.equals(h._id)));
+    }
+
     res.status(200).json({ success: true, count: hospitals.length, data: hospitals });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -72,15 +104,26 @@ exports.manageDepartment = async (req, res) => {
     }
     res.status(200).json({ success: true, data: dept });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('Department Management Error:', error.message);
+    res.status(400).json({ 
+      success: false, 
+      message: error.name === 'ValidationError' 
+        ? Object.values(error.errors).map(val => val.message).join(', ')
+        : error.message 
+    });
   }
 };
 
 // Doctor Management
 exports.onboardDoctor = async (req, res) => {
   try {
-    const { name, email, password, department, hospital, qualification, specialization, medicalRegistrationNumber } = req.body;
+    const { name, email, password, docId, department, hospital, qualification, specialization, medicalRegistrationNumber } = req.body;
     
+    // Check if docId already exists in this hospital
+    const Doctor = require('../models/Doctor');
+    const existingDoctor = await Doctor.findOne({ hospital, docId });
+    if (existingDoctor) return res.status(400).json({ success: false, message: 'Doctor ID already registered in this facility' });
+
     // Create User account first
     const user = await User.create({ name, email, password, role: 'doctor' });
     
@@ -88,6 +131,7 @@ exports.onboardDoctor = async (req, res) => {
     const doctor = await Doctor.create({
       userId: user._id,
       name,
+      docId,
       email,
       department,
       hospital,
@@ -117,6 +161,32 @@ exports.getDoctors = async (req, res) => {
     
     const doctors = await Doctor.find({ hospital: hospital._id }).populate('department', 'name');
     res.status(200).json({ success: true, data: doctors });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.removeDoctor = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ success: false, message: 'Doctor not found' });
+
+    // Remove associated user account
+    if (doctor.userId) {
+      await User.findByIdAndDelete(doctor.userId);
+    }
+    
+    await Doctor.findByIdAndDelete(req.params.id);
+    
+    await AuditLog.create({
+      user: req.user.id,
+      action: 'Doctor Removed',
+      entity: 'Doctor',
+      entityId: req.params.id,
+      details: `Removed doctor ${doctor.name}`
+    });
+
+    res.status(200).json({ success: true, message: 'Doctor removed from clinical register' });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -172,7 +242,15 @@ exports.manageStaff = async (req, res) => {
     const { action } = req.body;
     let staff;
     if (action === 'create') {
-      staff = await Staff.create(req.body);
+      const { name, staffId, role, hospital, contactDetails, department } = req.body;
+      staff = await Staff.create({
+        name,
+        staffId,
+        role,
+        hospital,
+        contactDetails,
+        department
+      });
     } else if (action === 'update') {
       staff = await Staff.findByIdAndUpdate(req.params.id, req.body, { new: true });
     } else if (action === 'remove') {
@@ -181,7 +259,13 @@ exports.manageStaff = async (req, res) => {
     }
     res.status(200).json({ success: true, data: staff });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('Staff Management Error:', error.message);
+    res.status(400).json({ 
+      success: false, 
+      message: error.name === 'ValidationError' 
+        ? Object.values(error.errors).map(val => val.message).join(', ')
+        : error.message 
+    });
   }
 };
 

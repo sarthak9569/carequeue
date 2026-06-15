@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { 
   getHospitals,
+  getDiscoveryData,
   getMyHospital,
   createHospital, 
   updateHospital, 
@@ -16,12 +17,14 @@ const {
   getLeaves,
   applyLeave,
   getSchedules,
-  manageSchedule
+  manageSchedule,
+  removeDoctor
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 
 // Public Routes
 router.get('/hospitals', getHospitals);
+router.get('/hospitals/discovery', getDiscoveryData);
 router.get('/departments', getDepartments);
 
 router.use(protect);
@@ -40,6 +43,7 @@ router.post('/departments', authorize('hospital_admin'), (req, res) => {
 // Doctors & Schedules
 router.get('/doctors', authorize('hospital_admin', 'department_admin'), getDoctors);
 router.post('/doctors/onboard', authorize('hospital_admin'), onboardDoctor);
+router.delete('/doctors/:id', authorize('hospital_admin'), removeDoctor);
 router.get('/schedules', authorize('hospital_admin', 'department_admin'), getSchedules);
 router.post('/schedules', authorize('hospital_admin'), manageSchedule);
 

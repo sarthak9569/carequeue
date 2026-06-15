@@ -9,26 +9,36 @@ const nodemailer = require('nodemailer');
 // @desc    Register a new user
 // @route   POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { name, email, password, role, hospitalName, hospitalCode } = req.body;
-  try {
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
-
-    const user = await User.create({ 
-      name, 
-      email, 
-      password, 
-      role: role || 'patient' 
-    });
-
-    if (user && role === 'hospital_admin') {
-      await Hospital.create({
-        name: hospitalName,
-        code: hospitalCode,
-        adminId: user._id,
-        email: email
+    const { name, email, password, role, hospitalName, hospitalCode, address, city, state, pincode } = req.body;
+    try {
+      const userExists = await User.findOne({ email });
+      if (userExists) return res.status(400).json({ message: 'User already exists' });
+  
+      const user = await User.create({ 
+        name, 
+        email, 
+        password, 
+        role: role || 'patient' 
       });
-    }
+  
+      if (user && role === 'hospital_admin') {
+        try {
+          await Hospital.create({
+            name: hospitalName,
+            code: hospitalCode,
+            adminId: user._id,
+            email: email,
+            address: address || 'Pending Update',
+            city: city || 'Pending Update',
+            state: state || 'Pending Update',
+            pincode: pincode || '000000'
+          });
+        } catch (hospError) {
+          // If hospital creation fails, we should ideally remove the user to allow retry
+          await User.findByIdAndDelete(user._id);
+          throw hospError;
+        }
+      }
 
     if (user) {
       res.status(201).json({
@@ -149,6 +159,45 @@ router.post('/verify-otp-login', async (req, res) => {
       token: generateToken(user._id),
     });
 
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Doctor Login (Hospital Code + Doctor ID)
+// @route   POST /api/auth/doctor-login
+router.post('/doctor-login', async (req, res) => {
+  const { hospitalCode, docId } = req.body;
+  try {
+    // 1. Find Hospital by Code
+    const hospital = await Hospital.findOne({ code: hospitalCode });
+    if (!hospital) return res.status(404).json({ message: 'Hospital facility not found' });
+
+    // 2. Find Doctor by docId within that Hospital
+    const Doctor = require('../models/Doctor');
+    const doctor = await Doctor.findOne({ hospital: hospital._id, docId: docId }).populate('department', 'name');
+    
+    if (!doctor) return res.status(401).json({ message: 'Doctor ID not recognized for this hospital' });
+
+    // 3. Get associated User account
+    const user = await User.findById(doctor.userId);
+    if (!user) return res.status(500).json({ message: 'Clinical account linkage failed' });
+
+    res.json({
+      _id: user._id,
+      name: doctor.name,
+      email: user.email,
+      role: 'doctor',
+      doctor_info: {
+        id: doctor._id,
+        docId: doctor.docId,
+        department: doctor.department?.name,
+        departmentId: doctor.department?._id,
+        hospitalName: hospital.name,
+        hospitalId: hospital._id
+      },
+      token: generateToken(user._id)
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

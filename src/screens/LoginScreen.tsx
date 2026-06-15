@@ -80,27 +80,10 @@ export const LoginScreen: React.FC = () => {
 
             <Typography variant="h3" style={styles.cardTitle}>Identity Verification</Typography>
             
-            {activePortal === 'HOSPITAL' && (
-              <View style={styles.subToggleContainer}>
-                <TouchableOpacity 
-                  style={[styles.subToggleBtn, !isAdmin && styles.subToggleActive]} 
-                  onPress={() => setIsAdmin(false)}
-                >
-                  <Typography variant="caption" weight="700" color={!isAdmin ? colors.primary : colors.muted}>DOCTOR</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.subToggleBtn, isAdmin && styles.subToggleActive]} 
-                  onPress={() => setIsAdmin(true)}
-                >
-                  <Typography variant="caption" weight="700" color={isAdmin ? colors.primary : colors.muted}>ADMIN</Typography>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {activePortal === 'PATIENT' || (activePortal === 'HOSPITAL' && isAdmin) ? (
+            {activePortal === 'HOSPITAL' ? (
               <Input
-                label="Email Address"
-                placeholder={activePortal === 'PATIENT' ? "name@example.com" : "admin@hospital.com"}
+                label="Administrator Email"
+                placeholder="admin@hospital.com"
                 icon="mail-outline"
                 value={email}
                 onChangeText={setEmail}
@@ -109,12 +92,13 @@ export const LoginScreen: React.FC = () => {
               />
             ) : (
               <Input
-                label="Doctor ID"
-                placeholder="e.g. DOC-123"
-                icon="id-card-outline"
-                value={docID}
-                onChangeText={setDocID}
-                autoCapitalize="characters"
+                label="Patient Email Address"
+                placeholder="name@example.com"
+                icon="mail-outline"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
             )}
             
@@ -153,11 +137,17 @@ export const LoginScreen: React.FC = () => {
               iconPosition="right"
             />
 
-            {activePortal === 'HOSPITAL' && !isAdmin && (
-              <Typography variant="caption" align="center" color={colors.accent} style={{ marginTop: spacing.m }}>
-                Hint: Any DocID + Password 'doctor123'
-              </Typography>
-            )}
+            <View style={styles.doctorEntry}>
+              <View style={styles.divider} />
+              <TouchableOpacity 
+                style={styles.doctorLink}
+                onPress={() => navigation.navigate('DoctorLogin')}
+              >
+                <Typography variant="caption" weight="800" color={colors.primary}>
+                  CLICK HERE FOR DOCTOR QUEUE CONTROL →
+                </Typography>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.footer}>
               <View style={styles.avatars}>
@@ -301,4 +291,21 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     alignItems: 'center',
   },
+  doctorEntry: {
+    marginTop: spacing.xl,
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    width: '100%',
+    marginBottom: spacing.m,
+  },
+  doctorLink: {
+    padding: spacing.s,
+    backgroundColor: colors.lightAccent,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+  }
 });

@@ -18,11 +18,13 @@ import { colors, spacing, borderRadius, shadows } from '../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 import { adminService } from '../services/adminService';
+import { apiService } from '../services/apiService';
 
 const ROLES = ['Receptionist', 'Nurse', 'Lab Technician', 'Pharmacist', 'Administrator'];
 
 export const StaffManagementScreen: React.FC = () => {
   const [staff, setStaff] = useState<any[]>([]);
+  const [hospitalId, setHospitalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ 
@@ -34,31 +36,62 @@ export const StaffManagementScreen: React.FC = () => {
   });
 
   React.useEffect(() => {
-    fetchStaff();
+    initScreen();
   }, []);
 
-  const fetchStaff = async () => {
+  const initScreen = async () => {
     try {
       setLoading(true);
-      const res = await adminService.getStaff();
+      const hostRes = await apiService.getMyHospital();
+      if (hostRes.data && hostRes.data.data) {
+        const id = hostRes.data.data._id;
+        setHospitalId(id);
+        fetchStaff(id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchStaff = async (hId: string) => {
+    try {
+      const res = await adminService.getStaff(hId);
       if (res.data && res.data.data) setStaff(res.data.data);
     } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreate = async () => {
-    if (!form.name || !form.staffId) return Alert.alert('Error', 'Required fields missing');
+    if (!hospitalId) {
+      return Alert.alert('Identity Synchronization Error', 'Your hospital session is not fully synchronized from the clinical registry. Please log out and log back in.');
+    }
+    if (!form.name || !form.staffId) return Alert.alert('Validation Error', 'Legal Name and Clinical Staff ID are required');
     try {
-      await adminService.addStaff({ ...form, action: 'create' });
+      setLoading(true);
+      const payload = { 
+        ...form, 
+        hospital: hospitalId,
+        action: 'create' 
+      };
+      
+      // Clinical validation: Ensure empty department IDs are not sent
+      if (!payload.department) delete (payload as any).department;
+
+      await adminService.addStaff(payload);
       setShowModal(false);
-      fetchStaff();
-    } catch (error) {
-      Alert.alert('Error', 'Action failed');
+      setForm({ name: '', staffId: '', role: 'Nurse', contactDetails: '', department: '' });
+      fetchStaff(hospitalId);
+      Alert.alert('Success', 'Personnel record established');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Failed to add personnel to clinical record';
+      Alert.alert('Clinical Registry Error', msg);
+    } finally {
+      setLoading(false);
     }
   };
-
   return (
     <Layout>
       <Header title="Staff Management" showBack />
@@ -115,7 +148,7 @@ export const StaffManagementScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.m },
   actionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.l },
-  staffCard: { flexDirection: 'row', justifyContent: 'space-between', padding: spacing.m, marginBottom: spacing.s },
+  staffCard: { flexDirection: 'row', justifyContent: 'space-between', padding: spacing.m, marginBottom: spacing.s, ...shadows.soft },
   staffMain: { flex: 1 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.m },
   modalContent: { padding: spacing.xl, borderRadius: 24 },

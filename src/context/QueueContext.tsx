@@ -173,7 +173,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return { waiting, serving, completed, byDepartment };
   }, [tokens]);
 
-  const generateToken = async (data: { name: string; phone?: string; departmentId: string; source: string; userId?: string }) => {
+  const generateToken = async (data: { name: string; phone?: string; departmentId: string; source: string; userId?: string; hospitalId?: string }) => {
     try {
       const response = await apiService.joinQueue({
         patient_name: data.name,

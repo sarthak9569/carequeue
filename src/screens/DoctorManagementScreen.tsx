@@ -29,6 +29,7 @@ export const DoctorManagementScreen: React.FC = () => {
   const [newDoctor, setNewDoctor] = useState({ 
     name: '', 
     email: '', 
+    docId: '',
     medicalRegistrationNumber: '',
     password: 'Password123',
     department: '',
@@ -73,8 +74,8 @@ export const DoctorManagementScreen: React.FC = () => {
 
   const handleOnboard = async () => {
     try {
-      if (!newDoctor.name || !newDoctor.email || !newDoctor.department) {
-        return Alert.alert('Error', 'Please fill all fields including department');
+      if (!newDoctor.name || !newDoctor.email || !newDoctor.docId || !newDoctor.department) {
+        return Alert.alert('Error', 'Please fill all fields including Doctor ID');
       }
       setLoading(true);
       await adminService.onboardDoctor(newDoctor);
@@ -83,6 +84,7 @@ export const DoctorManagementScreen: React.FC = () => {
         ...prev, 
         name: '', 
         email: '', 
+        docId: '',
         medicalRegistrationNumber: '', 
         password: 'Password123' 
       }));
@@ -93,6 +95,25 @@ export const DoctorManagementScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRemove = async (id: string) => {
+    if (!id) return;
+    Alert.alert('Decommission Staff', 'Are you sure you want to remove this doctor from the clinical registry?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove permanently', style: 'destructive', onPress: async () => {
+        try {
+          setLoading(true);
+          await adminService.removeDoctor(id);
+          fetchDoctors();
+          Alert.alert('Success', 'Medical staff record removed');
+        } catch (e) {
+          Alert.alert('Error', 'Failed to remove staff record');
+        } finally {
+          setLoading(false);
+        }
+      }}
+    ]);
   };
 
   return (
@@ -127,11 +148,14 @@ export const DoctorManagementScreen: React.FC = () => {
                   </Typography>
                 </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
+              <View style={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
                 <Badge 
                   label={item.status || 'Offline'} 
                   variant={item.status === 'Online' ? 'success' : (item.status === 'Busy' ? 'warning' : 'info')} 
                 />
+                <TouchableOpacity onPress={() => handleRemove(item._id || (item as any).id)} style={{ marginTop: spacing.s }}>
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                </TouchableOpacity>
               </View>
             </Card>
           )}
@@ -148,6 +172,12 @@ export const DoctorManagementScreen: React.FC = () => {
                 onChangeText={(t) => setNewDoctor({...newDoctor, name: t})}
               />
               <Input 
+                label="Doctor ID (DocID)" 
+                placeholder="DOC-001" 
+                value={newDoctor.docId}
+                onChangeText={(t) => setNewDoctor({...newDoctor, docId: t})}
+              />
+              <Input 
                 label="Email" 
                 placeholder="doctor@hospital.com" 
                 value={newDoctor.email}
@@ -159,6 +189,28 @@ export const DoctorManagementScreen: React.FC = () => {
                 value={newDoctor.medicalRegistrationNumber}
                 onChangeText={(t) => setNewDoctor({...newDoctor, medicalRegistrationNumber: t})}
               />
+              
+              <Typography variant="caption" weight="800" style={{ marginBottom: spacing.s, color: colors.primary }}>
+                CLINICAL SPECIALTY / DEPARTMENT
+              </Typography>
+              <View style={styles.deptChips}>
+                {departments.map((dept) => (
+                  <TouchableOpacity 
+                    key={dept._id} 
+                    style={[styles.chip, newDoctor.department === dept._id && styles.activeChip]}
+                    onPress={() => setNewDoctor({...newDoctor, department: dept._id})}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      weight="700" 
+                      color={newDoctor.department === dept._id ? colors.surface : colors.muted}
+                    >
+                      {dept.name.toUpperCase()}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
               <View style={styles.modalButtons}>
                 <Button title="Cancel" variant="outline" style={{ flex: 1, marginRight: spacing.s }} onPress={() => setShowModal(false)} />
                 <Button title="Onboard" style={{ flex: 1 }} onPress={handleOnboard} loading={loading} />
@@ -178,6 +230,9 @@ const styles = StyleSheet.create({
   doctorInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   avatar: { width: 45, height: 45, borderRadius: 22, backgroundColor: colors.lightAccent, justifyContent: 'center', alignItems: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.m },
-  modalContent: { padding: spacing.xl, borderRadius: 24 },
-  modalButtons: { flexDirection: 'row', marginTop: spacing.l }
+  modalContent: { padding: spacing.xl, borderRadius: 24, maxHeight: '90%' },
+  modalButtons: { flexDirection: 'row', marginTop: spacing.l },
+  deptChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: spacing.s, paddingBottom: spacing.m },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  activeChip: { backgroundColor: colors.primary, borderColor: colors.primary }
 });

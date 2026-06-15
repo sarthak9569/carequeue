@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { apiService, setAuthToken } from '../services/apiService';
+import { storage } from '../services/storageService';
 
 interface User {
   id: string;
@@ -10,6 +11,13 @@ interface User {
   token: string;
   phone?: string;
   birthday?: string;
+  doctorInfo?: {
+    hospitalId: string;
+    hospitalName: string;
+    departmentId: string;
+    departmentName: string;
+    docId: string;
+  };
 }
 
 interface AuthContextType {
@@ -17,6 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: { email?: string; docID?: string; password: string }) => Promise<void>;
+  doctorLogin: (hospitalCode: string, docId: string) => Promise<void>;
   signup: (name: string, email: string, password: string, extraData?: any) => Promise<void>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
@@ -33,8 +42,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   React.useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('carequeue_token');
-        const storedUser = localStorage.getItem('carequeue_user');
+        const token = await storage.getItem('carequeue_token');
+        const storedUser = await storage.getItem('carequeue_user');
         if (token && storedUser) {
           setAuthToken(token);
           setUser(JSON.parse(storedUser));
@@ -51,22 +60,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (credentials: { email?: string; docID?: string; password: string }) => {
     setIsLoading(true);
     try {
-      // Mock Doctor Login if docID is provided
-      if (credentials.docID) {
-        if (credentials.password === 'doctor123') {
-          setUser({
-            id: 'doc_mock_1',
-            name: 'Dr. Sanctuary',
-            docID: credentials.docID,
-            role: 'doctor',
-            token: 'mock_doc_token',
-          });
-          return;
-        } else {
-          throw new Error('Access Denied: Invalid Doctor Security Key');
-        }
-      }
-
       const response = await apiService.login({
         email: credentials.email!,
         password: credentials.password
@@ -79,10 +72,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token: response.data.token,
       };
       setUser(userData);
-      localStorage.setItem('carequeue_user', JSON.stringify(userData));
+      await storage.setItem('carequeue_user', JSON.stringify(userData));
       setAuthToken(response.data.token);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || error.message || 'Verification failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const doctorLogin = async (hospitalCode: string, docId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.doctorLogin({ hospitalCode, docId });
+      const userData: User = {
+        id: response.data._id,
+        name: response.data.name,
+        email: response.data.email,
+        role: 'doctor',
+        token: response.data.token,
+        doctorInfo: {
+          hospitalId: response.data.doctor_info.hospitalId,
+          hospitalName: response.data.doctor_info.hospitalName,
+          departmentId: response.data.doctor_info.departmentId,
+          departmentName: response.data.doctor_info.departmentName,
+          docId: response.data.doctor_info.docId,
+        }
+      };
+      setUser(userData);
+      await storage.setItem('carequeue_user', JSON.stringify(userData));
+      setAuthToken(response.data.token);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Access Denied: Invalid Hospital Code or Doctor ID');
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token: response.data.token,
       };
       setUser(userData);
-      localStorage.setItem('carequeue_user', JSON.stringify(userData));
+      await storage.setItem('carequeue_user', JSON.stringify(userData));
       setAuthToken(response.data.token);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Registration failed');
@@ -111,7 +132,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('carequeue_user');
+    void storage.removeItem('carequeue_user');
     setAuthToken(null);
   };
 
@@ -142,7 +163,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token: response.data.token,
       };
       setUser(userData);
-      localStorage.setItem('carequeue_user', JSON.stringify(userData));
+      await storage.setItem('carequeue_user', JSON.stringify(userData));
       setAuthToken(response.data.token);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Invalid OTP');
@@ -157,6 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isAuthenticated: !!user,
       isLoading,
       login,
+      doctorLogin,
       signup,
       logout,
       updateProfile,

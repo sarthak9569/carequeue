@@ -17,18 +17,19 @@ export const adminService = {
   // Doctors
   onboardDoctor: (data: any) => api.post('/admin/doctors/onboard', data),
   getDoctors: () => api.get('/admin/doctors'), 
+  removeDoctor: (id: string) => api.delete(`/admin/doctors/${id}`),
   getSchedules: () => api.get('/admin/schedules'),
   manageSchedule: (data: any) => api.post('/admin/schedules', data),
 
   // Staff
   addStaff: (data: any) => api.post('/admin/staff', data),
-  getStaff: () => api.get('/admin/staff'),
+  getStaff: (hospitalId?: string) => api.get('/admin/staff', { params: { hospitalId } }),
 
   // Leaves
   applyLeave: (data: any) => api.post('/admin/leaves/apply', data),
-  getLeaves: () => api.get('/admin/leaves'),
+  getLeaves: (hospitalId?: string) => api.get('/admin/leaves', { params: { hospitalId } }),
   updateLeaveStatus: (id: string, status: 'Approved' | 'Rejected') => api.put(`/admin/leaves/${id}/status`, { status }),
 
   // Analytics
-  getAnalytics: () => api.get('/admin/analytics'),
+  getAnalytics: (hospitalId?: string) => api.get('/admin/analytics', { params: { hospitalId } }),
 };

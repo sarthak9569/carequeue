@@ -1,13 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { StyleSheet, View, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Layout } from '../components/Layout';
-import { Header } from '../components/Header';
 import { Typography } from '../components/Typography';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/RootNavigator';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/StatusUI';
@@ -18,58 +14,17 @@ import { useAuth } from '../context/AuthContext';
 export const DoctorDashboard: React.FC = () => {
   const { 
     tokens, 
-    updateTokenStatus, 
-    departments, 
     callNextInDepartment, 
     skipPatient 
   } = useQueue();
   const { logout, user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  
-  const [deptId, setDeptId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [showDeptSelector, setShowDeptSelector] = useState(false);
 
-  // Doctor ID to Department mapping algorithm
-  const getDeptFromDocID = (id?: string) => {
-    if (!id) return null;
-    const lowerId = id.toLowerCase();
-    
-    const mapping: Record<string, string> = {
-      'opd': 'OPD',
-      'gen': 'General Consultation',
-      'emr': 'Emergency',
-      'cardio': 'Cardiology',
-      'ortho': 'Orthopedics',
-      'pedia': 'Pediatrics',
-      'med': 'General Medicine',
-      'derma': 'Dermatology',
-      'ent': 'ENT',
-      'gynec': 'Gynecology'
-    };
-
-    // Check suffix match
-    for (const [suffix, name] of Object.entries(mapping)) {
-      if (lowerId.endsWith(suffix)) return name;
-    }
-    return null;
-  };
-
-  // Auto-select department based on DocID or first available
-  React.useEffect(() => {
-    if (!deptId && departments.length > 0) {
-      const targetDeptName = getDeptFromDocID(user?.docID);
-      const matchedDept = departments.find(d => 
-        d.name.toLowerCase().includes(targetDeptName?.toLowerCase() || '---')
-      );
-      
-      setDeptId(matchedDept?.id || departments[0].id);
-    }
-  }, [departments, user?.docID]);
-
-  const currentDept = useMemo(() => 
-    departments.find(d => d.id === deptId) || departments[0] || { name: 'Clinical Unit', id: '' },
-  [departments, deptId]);
+  // Doctors are strictly locked to their assigned department from AuthContext
+  const deptId = user?.doctorInfo?.departmentId;
+  const deptName = user?.doctorInfo?.departmentName || 'General Unit';
+  const hospitalName = user?.doctorInfo?.hospitalName || 'Clinical Facility';
+  const docId = user?.doctorInfo?.docId || 'ID-PENDING';
 
   const queueList = useMemo(() => 
     tokens.filter(t => t.department.id === deptId && (t.status === 'waiting' || t.status === 'current')),
@@ -81,18 +36,13 @@ export const DoctorDashboard: React.FC = () => {
     [queueList]
   );
 
-  const waitingQueue = useMemo(() => 
-    queueList.filter(t => t.status === 'waiting'),
-    [queueList]
-  );
-
   const handleNext = async () => {
     try {
       if (!deptId) return;
       setRefreshing(true);
       const next = await callNextInDepartment(deptId);
       if (!next) {
-        Alert.alert('Queue Empty', 'No more patients waiting in your unit.');
+        Alert.alert('Queue Empty', 'All patients in your department have been served.');
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to advance queue');
@@ -113,21 +63,24 @@ export const DoctorDashboard: React.FC = () => {
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    // QueueContext automatically re-fetches if fetchInitialData is called
-    // For now, we'll assume the socket handles it, but manual refresh is good
-    setTimeout(() => setRefreshing(false), 1000);
+  const handleRecall = () => {
+    if (!currentPatient) return;
+    Alert.alert('Recalling Patient', `Re-announcing Token ${currentPatient.queue_number} for ${currentPatient.patient_name}.`);
+    // In a real system, this might trigger a specific socket event for a voice announcement system
   };
 
-  const renderQueueItem = ({ item, index }: { item: any, index: number }) => (
+  const renderQueueItem = ({ item }: { item: any }) => (
     <View style={[styles.queueItem, item.status === 'current' && styles.activeItem]}>
       <Typography variant="h3" color={item.status === 'current' ? colors.primary : colors.muted} style={styles.tokenNo}>
-        {item.queue_number}
+        #{item.queue_number}
       </Typography>
       <View style={styles.itemInfo}>
         <Typography variant="body" weight="600">{item.patient_name}</Typography>
-        {item.status === 'current' && <Typography variant="caption" color={colors.accent}>← Current Patient</Typography>}
+        {item.status === 'current' ? (
+          <Typography variant="caption" color={colors.primary} weight="700">CURRENTLY IN ROOM</Typography>
+        ) : (
+          <Typography variant="caption" color={colors.muted}>Waiting in Hallway</Typography>
+        )}
       </View>
       {item.status === 'current' && <Badge label="SERVING" variant="success" />}
     </View>
@@ -135,201 +88,205 @@ export const DoctorDashboard: React.FC = () => {
 
   return (
     <Layout>
-      <Header 
-        title="Doctor Dashboard" 
-        rightElement={
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => setShowDeptSelector(true)} style={styles.deptBtn}>
-              <Typography variant="caption" color={colors.surface} weight="700">{currentDept.name}</Typography>
-              <Ionicons name="chevron-down" size={16} color={colors.surface} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('LeaveManagement')} style={{ marginLeft: spacing.m }}>
-              <Ionicons name="briefcase-outline" size={24} color={colors.surface} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={logout} style={{ marginLeft: spacing.m }}>
-              <Ionicons name="log-out-outline" size={24} color={colors.surface} />
-            </TouchableOpacity>
-          </View>
-        }
-      />
+      <View style={styles.header}>
+        <View>
+          <Typography variant="h2" weight="800" color={colors.surface}>{user?.name}</Typography>
+          <Typography variant="caption" weight="600" color="rgba(255,255,255,0.7)">
+            {hospitalName.toUpperCase()} • ID: {docId}
+          </Typography>
+        </View>
+        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+          <Ionicons name="log-out-outline" size={24} color={colors.surface} />
+        </TouchableOpacity>
+      </View>
       
       <View style={styles.main}>
-        {/* Unit Info */}
-        <Typography variant="caption" weight="800" color={colors.muted} style={styles.unitLabel}>
-          ASSIGNED UNIT: {currentDept.name.toUpperCase()}
-        </Typography>
+        {/* Department Lock Indicator */}
+        <View style={styles.deptLock}>
+          <Ionicons name="lock-closed" size={12} color={colors.primary} />
+          <Typography variant="caption" weight="800" color={colors.primary} style={{ marginLeft: 6 }}>
+            LOCKED TO: {deptName.toUpperCase()} QUEUE
+          </Typography>
+        </View>
 
-        {/* Current Serving Card */}
+        {/* Status Section */}
+        <View style={styles.statsRow}>
+          <Card style={styles.statBox}>
+            <Typography variant="h2" color={colors.primary}>{queueList.filter(t => t.status === 'waiting').length}</Typography>
+            <Typography variant="caption">Total Waiting</Typography>
+          </Card>
+          <Card style={styles.statBox}>
+            <Typography variant="h2" color={colors.accent}>{currentPatient ? '1' : '0'}</Typography>
+            <Typography variant="caption">Active Patient</Typography>
+          </Card>
+        </View>
+
+        {/* Current Active Patient Card */}
         <Card variant="premium" style={styles.currentCard}>
-          <Typography variant="caption" color="rgba(255,255,255,0.7)" align="center">NOW SERVING TOKEN</Typography>
+          <View style={styles.currentHeader}>
+            <Typography variant="caption" color="rgba(255,255,255,0.8)">NOW SERVING</Typography>
+            <TouchableOpacity onPress={handleRecall} disabled={!currentPatient}>
+              <View style={styles.recallTag}>
+                <Ionicons name="volume-high" size={14} color="#fff" />
+                <Typography variant="caption" weight="700" color="#fff" style={{ marginLeft: 4 }}>RECALL</Typography>
+              </View>
+            </TouchableOpacity>
+          </View>
           <Typography variant="h1" color={colors.surface} align="center" style={styles.currentToken}>
             {currentPatient?.queue_number || '---'}
           </Typography>
-          {currentPatient && (
-            <Typography variant="h3" color={colors.surface} align="center" style={{ marginTop: -10 }}>
-              {currentPatient.patient_name}
-            </Typography>
-          )}
+          <Typography variant="h3" color={colors.surface} align="center" style={styles.currentName}>
+            {currentPatient?.patient_name || 'No Patient Active'}
+          </Typography>
         </Card>
 
-        {/* Restricted Actions */}
-        <View style={styles.actionRow}>
+        {/* Main Controls - THE ENGINE */}
+        <View style={styles.controls}>
           <Button 
-            title="NEXT" 
+            title="NEXT PATIENT" 
             onPress={handleNext} 
             variant="primary" 
             style={styles.nextBtn}
+            size="large"
             icon="arrow-forward-circle"
             iconPosition="right"
+            loading={refreshing}
           />
           <Button 
             title="SKIP" 
             onPress={handleSkip} 
-            variant="secondary" 
+            variant="outline" 
             style={styles.skipBtn}
             icon="play-skip-forward"
             disabled={!currentPatient}
           />
         </View>
 
-        {/* Queue List */}
-        <Typography variant="h4" style={styles.listTitle}>Upcoming Appointments</Typography>
+        {/* Simplified Queue List */}
+        <View style={styles.listHeader}>
+          <Typography variant="h4" weight="700">Upcoming Sequence</Typography>
+          <Typography variant="caption" color={colors.muted}>{queueList.length} total tokens</Typography>
+        </View>
+
         <FlatList
           data={queueList}
           renderItem={renderQueueItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="checkmark-circle-outline" size={64} color={colors.border} />
-              <Typography color={colors.muted}>No patients in queue</Typography>
+              <Ionicons name="medical-outline" size={48} color={colors.border} />
+              <Typography color={colors.muted} style={{ marginTop: spacing.s }}>
+                Clinical queue is clear
+              </Typography>
             </View>
           }
         />
-
-        {/* Footer info showing restriction */}
-        <View style={styles.restrictionInfo}>
-          <Ionicons name="lock-closed" size={14} color={colors.muted} />
-          <Typography variant="caption" color={colors.muted} style={{ marginLeft: 6 }}>
-            Read-only clinical view. Admin privileges restricted.
-          </Typography>
-        </View>
       </View>
-
-      {/* Department Selector Modal */}
-      {showDeptSelector && (
-        <View style={styles.modalOverlay}>
-          <Card style={styles.modalContent}>
-            <Typography variant="h3" style={{ marginBottom: spacing.m }}>Switch Clinical Unit</Typography>
-            <ScrollView style={{ maxHeight: 300 }}>
-              {departments.map(dept => (
-                <TouchableOpacity 
-                  key={dept.id} 
-                  style={[styles.deptOption, deptId === dept.id && styles.activeDeptOption]}
-                  onPress={() => {
-                    setDeptId(dept.id);
-                    setShowDeptSelector(false);
-                  }}
-                >
-                  <Typography weight={deptId === dept.id ? '700' : 'normal'}>{dept.name}</Typography>
-                  {deptId === dept.id && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <Button title="Close" variant="ghost" onPress={() => setShowDeptSelector(false)} />
-          </Card>
-        </View>
-      )}
     </Layout>
   );
 };
 
 const styles = StyleSheet.create({
+  header: {
+    backgroundColor: colors.primary,
+    padding: spacing.xl,
+    paddingTop: spacing.xxl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    ...shadows.medium
+  },
+  logoutBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    padding: 10,
+    borderRadius: 12
+  },
   main: { flex: 1, padding: spacing.m },
-  unitLabel: { marginBottom: spacing.m, letterSpacing: 1 },
+  deptLock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.lightAccent,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: spacing.m,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.s,
+    marginBottom: spacing.m
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+    padding: spacing.m,
+    borderRadius: 20
+  },
   currentCard: { 
-    padding: spacing.xl, 
+    padding: spacing.l, 
     borderRadius: 24, 
-    marginBottom: spacing.l,
+    marginBottom: spacing.m,
     ...shadows.medium,
   },
-  currentToken: { fontSize: 64, fontWeight: '800' },
-  actionRow: {
+  currentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recallTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
+  },
+  currentToken: { fontSize: 80, fontWeight: '900', marginVertical: -10 },
+  currentName: { opacity: 0.9 },
+  controls: {
     flexDirection: 'row',
     gap: spacing.s,
     marginBottom: spacing.l,
   },
   nextBtn: { 
-    flex: 2,
-    height: 60, 
-    borderRadius: 14, 
-    backgroundColor: colors.accent,
+    flex: 2.5,
+    height: 70, 
+    borderRadius: 18, 
+    backgroundColor: colors.primary,
   },
   skipBtn: {
     flex: 1,
-    height: 60,
-    borderRadius: 14,
+    height: 70,
+    borderRadius: 18,
   },
-  deptBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: spacing.s,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  modalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,39,68,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-    zIndex: 1000,
-  },
-  modalContent: {
-    width: '100%',
-    padding: spacing.l,
-    borderRadius: borderRadius.xl,
-  },
-  deptOption: {
+  listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: spacing.m,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    alignItems: 'center',
+    marginBottom: spacing.m
   },
-  activeDeptOption: {
-    backgroundColor: 'rgba(14, 165, 160, 0.05)',
-  },
-  listTitle: { marginBottom: spacing.m },
-  list: { paddingBottom: spacing.xxl },
+  list: { paddingBottom: spacing.xl },
   queueItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.m,
-    backgroundColor: '#fff',
-    borderRadius: borderRadius.m,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     marginBottom: spacing.s,
-    borderWidth: 1,
-    borderColor: colors.border,
+    ...shadows.soft
   },
   activeItem: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(14, 165, 160, 0.05)',
     borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.lightAccent
   },
-  tokenNo: { width: 80, fontSize: 22 },
+  tokenNo: { width: 70, fontSize: 20, fontWeight: '800' },
   itemInfo: { flex: 1 },
-  empty: { alignItems: 'center', marginTop: spacing.xl, opacity: 0.5 },
-  restrictionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.m,
-    paddingTop: spacing.m,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
+  empty: { alignItems: 'center', marginTop: spacing.xxl, opacity: 0.4 },
 });
+

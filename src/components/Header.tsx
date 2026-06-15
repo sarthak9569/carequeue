@@ -9,10 +9,22 @@ import { useNavigation } from '@react-navigation/native';
 interface HeaderProps {
   title: string;
   showBack?: boolean;
+  leftIcon?: keyof typeof Ionicons.glyphMap;
+  onLeftPress?: () => void;
   rightElement?: React.ReactNode;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightPress?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, showBack = false, rightElement }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  title, 
+  showBack = false, 
+  leftIcon,
+  onLeftPress,
+  rightElement, 
+  rightIcon, 
+  onRightPress 
+}) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -20,11 +32,15 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack = false, rightEl
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
         <View style={styles.left}>
-          {showBack && (
+          {showBack ? (
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={colors.surface} />
             </TouchableOpacity>
-          )}
+          ) : leftIcon ? (
+            <TouchableOpacity onPress={onLeftPress} style={styles.backButton}>
+              <Ionicons name={leftIcon} size={24} color={colors.surface} />
+            </TouchableOpacity>
+          ) : null}
         </View>
         
         <View style={styles.center}>
@@ -35,6 +51,11 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack = false, rightEl
 
         <View style={styles.right}>
           {rightElement}
+          {!rightElement && rightIcon && (
+            <TouchableOpacity onPress={onRightPress} style={styles.rightButton}>
+              <Ionicons name={rightIcon} size={24} color={colors.surface} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -66,6 +87,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   backButton: {
+    padding: spacing.xs,
+  },
+  rightButton: {
     padding: spacing.xs,
   },
 });

@@ -23,6 +23,7 @@ import { colors, spacing, borderRadius, shadows } from '../theme/theme';
 import { DEPARTMENTS } from '../data/mockData';
 import { useQueue } from '../context/QueueContext';
 import { useAuth } from '../context/AuthContext';
+import { adminService } from '../services/adminService';
 
 const { width } = Dimensions.get('window');
 type AdminTab = 'Overview' | 'Management' | 'Doctors' | 'Queue' | 'QR Codes';
@@ -32,6 +33,28 @@ export const AdminDashboard: React.FC = () => {
   const { logout } = useAuth();
   const { tokens, stats, resetQueue } = useQueue();
   const [activeTab, setActiveTab] = useState<AdminTab>('Management');
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+
+  React.useEffect(() => {
+    if (activeTab === 'Doctors') {
+      fetchDoctors();
+    }
+  }, [activeTab]);
+
+  const fetchDoctors = async () => {
+    try {
+      setLoadingStaff(true);
+      const res = await adminService.getDoctors();
+      if (res.data && res.data.data) {
+        setDoctors(res.data.data);
+      }
+    } catch (e) {
+      console.error('Failed to sync medical personnel:', e);
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
 
   const handleReset = async () => {
     Alert.alert('Reset Queue', 'Clear all data?', [
@@ -150,6 +173,21 @@ export const AdminDashboard: React.FC = () => {
     </ScrollView>
   );
 
+  const handleRemoveDoctor = async (id: string, name: string) => {
+    Alert.alert('Decommission Personnel', `Are you sure you want to remove Dr. ${name} and their clinical access credentials permanently?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: async () => {
+        try {
+          await adminService.removeDoctor(id);
+          fetchDoctors();
+          Alert.alert('Success', 'Medical personnel record removed');
+        } catch (e) {
+          Alert.alert('Error', 'Failed to remove staff record');
+        }
+      }}
+    ]);
+  };
+
   const renderDoctors = () => (
     <View style={{ flex: 1 }}>
       <View style={styles.actionHeaderInline}>
@@ -157,13 +195,23 @@ export const AdminDashboard: React.FC = () => {
         <Button title="Onboard" size="small" onPress={() => navigation.navigate('DoctorManagement')} />
       </View>
       <FlatList
-        data={[]} // This would map to real doctors if passed from a hook
-        keyExtractor={(item: any) => item.id}
-        ListEmptyComponent={<Typography align="center" color={colors.muted} style={{ marginTop: 40 }}>No doctors onboarded yet.</Typography>}
+        data={doctors}
+        keyExtractor={(item: any) => item._id || item.id}
+        refreshing={loadingStaff}
+        onRefresh={fetchDoctors}
+        ListEmptyComponent={<Typography align="center" color={colors.muted} style={{ marginTop: 40 }}>No medical staff are currently onboarded.</Typography>}
         renderItem={({ item }) => (
-          <Card style={styles.doctorRowInline}>
-            <Typography weight="600">{item.name}</Typography>
-            <Badge label={item.status} variant="success" />
+          <Card style={styles.doctorRowInline} variant="flat">
+            <View style={{ flex: 1 }}>
+              <Typography weight="700">{item.name}</Typography>
+              <Typography variant="caption" color={colors.muted}>{item.department?.name || 'General Unit'}</Typography>
+            </View>
+            <View style={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <Badge label={item.status || 'Active'} variant={item.status === 'Online' ? 'success' : 'info'} />
+              <TouchableOpacity onPress={() => handleRemoveDoctor(item._id || (item as any).id, item.name)} style={{ marginTop: 8 }}>
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
+              </TouchableOpacity>
+            </View>
           </Card>
         )}
       />
@@ -175,6 +223,8 @@ export const AdminDashboard: React.FC = () => {
       <Header 
         title="Admin Hub" 
         showBack={false}
+        leftIcon="settings-outline"
+        onLeftPress={() => navigation.navigate('Settings' as any)}
         rightIcon="log-out-outline"
         onRightPress={() => {
           Alert.alert('Logout', 'Are you sure?', [
@@ -210,4 +260,18 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   gridItem: { width: (width - spacing.m * 3) / 2, marginBottom: spacing.m },
   gridCard: { padding: spacing.l, alignItems: 'center', justifyContent: 'center', ...shadows.soft },
+  actionHeaderInline: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.m,
+  },
+  doctorRowInline: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.m,
+    marginBottom: spacing.s,
+    backgroundColor: colors.surface,
+  },
 });

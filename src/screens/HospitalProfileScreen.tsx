@@ -24,6 +24,9 @@ export const HospitalProfileScreen: React.FC = () => {
     name: '',
     code: '',
     address: '',
+    city: '',
+    state: '',
+    pincode: '',
     contact: '',
     email: '',
     website: '',
@@ -48,6 +51,9 @@ export const HospitalProfileScreen: React.FC = () => {
           name: d.name || '',
           code: d.code || '',
           address: d.address || '',
+          city: d.city || '',
+          state: d.state || '',
+          pincode: d.pincode || '',
           contact: d.contact || '',
           email: d.email || '',
           website: d.website || '',
@@ -116,6 +122,9 @@ export const HospitalProfileScreen: React.FC = () => {
           {renderField('Full Name', profile.name, 'name')}
           {renderField('Hospital Code', profile.code, 'code')}
           {renderField('Address', profile.address, 'address')}
+          {renderField('City', profile.city, 'city')}
+          {renderField('State', profile.state, 'state')}
+          {renderField('Pincode', profile.pincode, 'pincode')}
           {renderField('Contact Number', profile.contact, 'contact')}
           {renderField('Email', profile.email, 'email')}
           {renderField('Website', profile.website, 'website')}

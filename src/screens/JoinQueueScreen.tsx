@@ -23,6 +23,7 @@ import { DEPARTMENTS } from '../data/mockData';
 import { RootStackParamList, TabParamList } from '../navigation/RootNavigator';
 import { useQueue } from '../context/QueueContext';
 import { useAuth } from '../context/AuthContext';
+import { apiService } from '../services/apiService';
 
 type JoinQueueRouteProp = RouteProp<TabParamList, 'JoinQueue'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -174,10 +175,15 @@ export const JoinQueueScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.grid}>
-          {localDepts.length > 0 
-            ? localDepts.map(renderDeptCard)
-            : DEPARTMENTS.map(renderDeptCard) // UI-only placeholder cards until API data arrives
-          }
+          {localDepts.length > 0 ? (
+            localDepts.map(renderDeptCard)
+          ) : !loading ? (
+            <View style={styles.emptyContainer}>
+              <Typography variant="body" color={colors.muted} align="center">
+                This hospital has not listed any specialties yet.
+              </Typography>
+            </View>
+          ) : null}
         </View>
 
         <Card style={styles.contactCard}>
@@ -247,6 +253,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   container: { padding: spacing.m, paddingBottom: spacing.xxl },
+  emptyContainer: { 
+    width: '100%', 
+    padding: spacing.xl, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

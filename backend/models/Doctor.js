@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const doctorSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
+  docId: { type: String, required: true }, // Unique clinical identifier within a hospital
   qualification: { type: String },
   specialization: { type: String },
   medicalRegistrationNumber: { type: String },

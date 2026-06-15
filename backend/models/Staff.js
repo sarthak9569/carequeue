@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const staffSchema = new mongoose.Schema({
   hospital: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', required: true },
-  staffId: { type: String, required: true },
+  staffId: { type: String, required: true }, // Not globally unique, but should be unique per hospital (logic in controller)
   name: { type: String, required: true },
   role: { 
     type: String, 

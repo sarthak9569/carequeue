@@ -31,16 +31,19 @@ export const ReportsScreen: React.FC = () => {
     try {
       setLoading(true);
       const res = await adminService.getAnalytics();
-      setStats({
-        today: {
-          totalPatients: res.data.today.totalPatients || 0,
-          waitingTime: '12m', // Calculation logic can be added later
-          activeDepartments: res.data.today.activeDepartments
-        },
-        deptWise: res.data.deptWise || []
-      });
+      if (res.data && res.data.data) {
+        const statsData = res.data.data;
+        setStats({
+          today: {
+            totalPatients: statsData.today?.totalPatients || 0,
+            waitingTime: statsData.today?.avgWaitTime || '0m',
+            activeDepartments: statsData.today?.activeDepartments || 0
+          },
+          deptWise: statsData.deptWise || []
+        });
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Failed to fetch analytics:', error);
     } finally {
       setLoading(false);
     }

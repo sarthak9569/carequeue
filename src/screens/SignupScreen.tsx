@@ -21,25 +21,36 @@ export const SignupScreen: React.FC = () => {
   const [name, setName] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [hospitalCode, setHospitalCode] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [pincode, setPincode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSignup = async () => {
-    if (!name || !email || !password || (regType === 'HOSPITAL' && (!hospitalName || !hospitalCode))) {
-      setError('Please fill in all required fields');
+    const isHospital = regType === 'HOSPITAL';
+    const hasBaseFields = name && email && password;
+    const hasHospitalFields = hospitalName && hospitalCode && address && city && stateName && pincode;
+
+    if (!hasBaseFields || (isHospital && !hasHospitalFields)) {
+      setError('Please fill in all clinical and facility details');
       return;
     }
     
     try {
-      // In a real app, you'd update the signup function to accept role and hospital details
       await signup(name, email, password, { 
-        role: regType === 'HOSPITAL' ? 'hospital_admin' : 'patient',
+        role: isHospital ? 'hospital_admin' : 'patient',
         hospitalName,
-        hospitalCode
+        hospitalCode,
+        address,
+        city,
+        state: stateName,
+        pincode
       });
     } catch (e: any) {
-      setError(e.message || 'Could not create account');
+      setError(e.message || 'Could not onboard facility core');
     }
   };
 
@@ -90,11 +101,45 @@ export const SignupScreen: React.FC = () => {
                   onChangeText={setHospitalName}
                 />
                 <Input
-                  label="Desired Hospital Code"
+                  label="Unique Hospital Code"
                   placeholder="e.g. CGH-NY"
                   icon="barcode-outline"
                   value={hospitalCode}
                   onChangeText={setHospitalCode}
+                />
+                <Input
+                  label="Physical Address"
+                  placeholder="123 Medical Lane"
+                  icon="map-outline"
+                  value={address}
+                  onChangeText={setAddress}
+                />
+                <View style={styles.inlineInputs}>
+                  <Input
+                    label="City"
+                    placeholder="New York"
+                    icon="location-outline"
+                    value={city}
+                    onChangeText={setCity}
+                    containerStyle={{ flex: 1, marginRight: spacing.s }}
+                  />
+                  <Input
+                    label="Pincode"
+                    placeholder="10001"
+                    icon="pin-outline"
+                    value={pincode}
+                    onChangeText={setPincode}
+                    containerStyle={{ flex: 1 }}
+                    keyboardType="numeric"
+                    maxLength={6}
+                  />
+                </View>
+                <Input
+                  label="State / Province"
+                  placeholder="New York"
+                  icon="globe-outline"
+                  value={stateName}
+                  onChangeText={setStateName}
                 />
               </>
             )}
@@ -211,6 +256,10 @@ const styles = StyleSheet.create({
   },
   activeToggle: {
     backgroundColor: colors.primary,
+  },
+  inlineInputs: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   signupButton: {
     marginTop: spacing.m,

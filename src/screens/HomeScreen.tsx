@@ -23,19 +23,41 @@ export const HomeScreen: React.FC = () => {
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [hospitals, setHospitals] = useState<any[]>([]);
+  const [discoveryData, setDiscoveryData] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [pincode, setPincode] = useState('');
-
-  // Get active tokens for the current user
-  const activeTokens = tokens.filter(t => t.status === 'waiting' || t.status === 'current');
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
 
   React.useEffect(() => {
-    fetchHospitals();
+    fetchInitialData();
   }, []);
 
-  const fetchHospitals = async () => {
+  const fetchInitialData = async () => {
     try {
-      const res = await apiService.getHospitals();
+      setRefreshing(true);
+      const [hospRes, discRes] = await Promise.all([
+        apiService.getHospitals(),
+        apiService.getDiscoveryData()
+      ]);
+      
+      if (hospRes.data && hospRes.data.data) setHospitals(hospRes.data.data);
+      if (discRes.data && discRes.data.data) setDiscoveryData(discRes.data.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    try {
+      const res = await apiService.getHospitals({
+        search: searchQuery,
+        pincode: pincode,
+        city: selectedCity || undefined,
+        department: selectedSpecialty || undefined
+      });
       if (res.data && res.data.data) {
         setHospitals(res.data.data);
       }
@@ -44,17 +66,29 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      handleSearch();
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, pincode, selectedCity, selectedSpecialty]);
+
   const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchHospitals();
-    setRefreshing(false);
+    setSelectedCity(null);
+    setSelectedSpecialty(null);
+    setSearchQuery('');
+    setPincode('');
+    await fetchInitialData();
   };
 
-  const filteredHospitals = hospitals.filter(h => {
-    const matchName = h.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchPincode = pincode ? h.pincode?.includes(pincode) : true;
-    return matchName && matchPincode;
-  });
+  const SPECIALTIES = [
+    { name: 'Cardiology', icon: 'heart-pulse', color: '#ef4444' },
+    { name: 'Pediatrics', icon: 'baby-face-outline', color: '#3b82f6' },
+    { name: 'Orthopedics', icon: 'bone', color: '#8b5cf6' },
+    { name: 'Dentist', icon: 'tooth-outline', color: '#f59e0b' },
+    { name: 'ENT', icon: 'ear-hearing', color: '#10b981' },
+    { name: 'Neurology', icon: 'brain', color: '#8b5cf6' }
+  ];
 
   return (
     <Layout>
@@ -62,18 +96,26 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.headerContent}>
           <View style={styles.titleRow}>
             <View>
-              <Typography variant="caption" color="rgba(255,255,255,0.7)" weight="700">CITY SANCTUARY</Typography>
+              <Typography variant="caption" color="rgba(255,255,255,0.7)" weight="700">CLINICAL DISCOVERY</Typography>
               <Typography variant="h2" style={styles.welcomeText}>Hello, {user?.name?.split(' ')[0]}</Typography>
             </View>
-            <TouchableOpacity 
-              style={styles.profileBtn}
-              onPress={() => navigation.navigate('Profile' as any)}
-            >
-              <Image 
-                source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=0ea5a0&color=fff` }} 
-                style={styles.avatarImg} 
-              />
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.headerIconBtn}
+                onPress={() => navigation.navigate('Settings' as any)}
+              >
+                <Ionicons name="settings-outline" size={22} color={colors.surface} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.profileBtn}
+                onPress={() => navigation.navigate('Profile' as any)}
+              >
+                <Image 
+                  source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=0ea5a0&color=fff` }} 
+                  style={styles.avatarImg} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Search Section */}
@@ -81,7 +123,7 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.searchBarWrapper}>
               <Ionicons name="search" size={20} color="#94a3b8" />
               <Input 
-                placeholder="Search hospitals..."
+                placeholder="Name or specialty..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 containerStyle={styles.searchInner}
@@ -110,98 +152,120 @@ export const HomeScreen: React.FC = () => {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accent]} />}
       >
-        {/* Active Tokens Quick View */}
-        {activeTokens.length > 0 && (
-          <View style={styles.activeSection}>
-            <Typography variant="h3" style={styles.sectionTitle}>Your Active Appointments</Typography>
-            {activeTokens.map(token => (
+        {/* City Discovery Tiles */}
+        <View style={styles.discoverySection}>
+          <View style={styles.sectionHeader}>
+            <Typography variant="h3" style={styles.sectionTitle}>Discover by City</Typography>
+            {selectedCity && (
+              <TouchableOpacity onPress={() => setSelectedCity(null)}>
+                <Typography variant="caption" color={colors.accent} weight="700">Clear City</Typography>
+              </TouchableOpacity>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityScroll}>
+            {discoveryData.map(item => (
               <TouchableOpacity 
-                key={token.id} 
-                onPress={() => navigation.navigate('MyStatus', { queueNumber: token.queue_number, deptId: token.department.id })}
+                key={item._id} 
+                style={[styles.cityTile, selectedCity === item._id && styles.cityTileActive]}
+                onPress={() => setSelectedCity(selectedCity === item._id ? null : item._id)}
               >
-                <Card variant="premium" style={styles.tokenCard}>
-                  <View style={styles.tokenHeader}>
-                    <Typography variant="h1" color={colors.surface}>{token.queue_number}</Typography>
-                    <Badge label={token.status.toUpperCase()} variant={token.status === 'current' ? 'success' : 'warning'} />
-                  </View>
-                  <Typography variant="body" color="#cbd5e1" weight="600">{token.department.name}</Typography>
-                  <View style={styles.tokenFooter}>
-                    <Typography variant="caption" color="rgba(255,255,255,0.6)">Track live position in queue</Typography>
-                    <Ionicons name="chevron-forward" size={16} color={colors.surface} />
-                  </View>
+                <Card style={[styles.cityCard, selectedCity === item._id && { backgroundColor: colors.accent }]}>
+                  <MaterialCommunityIcons 
+                    name="city-variant-outline" 
+                    size={24} 
+                    color={selectedCity === item._id ? colors.surface : colors.accent} 
+                  />
+                  <Typography 
+                    variant="body" 
+                    weight="700" 
+                    color={selectedCity === item._id ? colors.surface : colors.text}
+                    style={{ marginTop: 8 }}
+                  >
+                    {item._id}
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    color={selectedCity === item._id ? 'rgba(255,255,255,0.8)' : colors.muted}
+                  >
+                    {item.count} Hospitals
+                  </Typography>
                 </Card>
               </TouchableOpacity>
             ))}
-          </View>
-        )}
+          </ScrollView>
+        </View>
 
+        {/* Clinical Specialties Filter */}
+        <View style={styles.specialtySection}>
+          <Typography variant="h3" style={styles.sectionTitle}>Browse Specialties</Typography>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.specialtyScroll}>
+            {SPECIALTIES.map((item) => (
+              <TouchableOpacity 
+                key={item.name} 
+                style={styles.specialtyItemH} 
+                onPress={() => setSelectedSpecialty(selectedSpecialty === item.name ? null : item.name)}
+              >
+                <Card style={[styles.specialtyCardH, selectedSpecialty === item.name && styles.specialtyCardActive]}>
+                  <MaterialCommunityIcons 
+                    name={item.icon as any} 
+                    size={26} 
+                    color={selectedSpecialty === item.name ? colors.surface : item.color} 
+                  />
+                  <Typography 
+                    variant="caption" 
+                    weight="700" 
+                    color={selectedSpecialty === item.name ? colors.surface : colors.text}
+                    style={{ marginTop: 4 }}
+                  >
+                    {item.name}
+                  </Typography>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Hospital Listings */}
         <View style={styles.listingSection}>
           <View style={styles.sectionHeader}>
-            <Typography variant="h3" style={styles.sectionTitle}>Registered Facilities</Typography>
-            <TouchableOpacity><Typography variant="caption" color={colors.accent} weight="700">See All</Typography></TouchableOpacity>
+            <Typography variant="h3" style={styles.sectionTitle}>
+              {selectedCity || selectedSpecialty ? 'Filtered Results' : 'Registered Facilities'}
+            </Typography>
+            <Badge label={`${hospitals.length} FOUND`} variant="info" />
           </View>
           
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            style={styles.hospitalScroll}
-            contentContainerStyle={styles.hospitalScrollContent}
-          >
-            {filteredHospitals.length > 0 ? filteredHospitals.map((hosp) => (
+          <View style={styles.hospitalGrid}>
+            {hospitals.length > 0 ? hospitals.map((hosp) => (
               <TouchableOpacity 
                 key={hosp._id} 
+                style={styles.hospitalGridItem}
                 onPress={() => navigation.navigate('JoinQueue', { hospitalId: hosp._id })}
               >
-                <Card style={styles.hospitalCard}>
+                <Card style={styles.hospitalGridCard}>
                   <View style={styles.hospIconLarge}>
-                    <MaterialCommunityIcons name="hospital-building" size={40} color={colors.accent} />
+                    <MaterialCommunityIcons name="hospital-building" size={32} color={colors.accent} />
                   </View>
-                  <Typography weight="800" numberOfLines={1} style={{ marginTop: spacing.s }}>{hosp.name}</Typography>
-                  <Typography variant="caption" color={colors.muted}>{hosp.type || 'Private'}</Typography>
-                  <View style={styles.hospBadge}>
-                    <Typography variant="caption" color={colors.accent} weight="700">Join Queue</Typography>
+                  <View style={styles.hospInfo}>
+                    <Typography weight="800" numberOfLines={1}>{hosp.name}</Typography>
+                    <Typography variant="caption" color={colors.muted} numberOfLines={1}>
+                      <Ionicons name="location-outline" size={12} /> {hosp.city}, {hosp.pincode}
+                    </Typography>
+                    <View style={styles.hospBadge}>
+                      <Typography variant="caption" color={colors.accent} weight="700">VIEW QUEUE</Typography>
+                    </View>
                   </View>
                 </Card>
               </TouchableOpacity>
             )) : (
-              <Typography variant="caption" color={colors.muted} style={{ padding: spacing.m }}>No hospitals found in this area.</Typography>
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="hospital-marker" size={60} color={colors.border} />
+                <Typography variant="body" color={colors.muted} style={{ marginTop: spacing.m }}>
+                  No hospitals match your search criteria.
+                </Typography>
+              </View>
             )}
-          </ScrollView>
-        </View>
-
-        {/* Clinical Specialties */}
-        <Typography variant="h3" style={[styles.sectionTitle, { marginTop: spacing.l }]}>Browse Specialties</Typography>
-        <View style={styles.specialtyContainer}>
-          {[
-            { name: 'Cardiology', icon: 'heart-pulse', color: '#ef4444' },
-            { name: 'Pediatrics', icon: 'baby-face-outline', color: '#3b82f6' },
-            { name: 'Orthopedics', icon: 'bone', color: '#8b5cf6' },
-            { name: 'General', icon: 'stethoscope', color: '#10b981' }
-          ].map((item) => (
-            <TouchableOpacity key={item.name} style={styles.specialtyItem} onPress={() => navigation.navigate('JoinQueue' as any)}>
-              <Card style={styles.specialtyCard}>
-                <MaterialCommunityIcons name={item.icon as any} size={30} color={item.color} />
-                <Typography variant="caption" weight="700" style={{ marginTop: 8 }}>{item.name}</Typography>
-              </Card>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Overall System Load */}
-        <Card style={styles.statusCard}>
-          <Typography variant="h4" color={colors.primary}>Sanctuary Status</Typography>
-          <View style={styles.statusStats}>
-            <View style={styles.statItem}>
-              <Typography variant="h2">{stats.waiting + 24}</Typography>
-              <Typography variant="caption" color={colors.muted}>ACTIVE PATIENTS</Typography>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Typography variant="h2">Normal</Typography>
-              <Typography variant="caption" color={colors.success} weight="700">SYSTEM LOAD</Typography>
-            </View>
           </View>
-        </Card>
+        </View>
       </ScrollView>
     </Layout>
   );
@@ -225,6 +289,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.l,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.m,
   },
   welcomeText: {
     fontSize: 28,
@@ -320,71 +397,89 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
   },
-  listingSection: {
+  discoverySection: {
     marginBottom: spacing.l,
   },
-  hospitalScroll: {
+  cityScroll: {
     marginHorizontal: -spacing.m,
-  },
-  hospitalScrollContent: {
     paddingHorizontal: spacing.m,
-    paddingBottom: spacing.s,
   },
-  hospitalCard: {
-    width: 180,
-    padding: spacing.m,
+  cityTile: {
     marginRight: spacing.m,
+  },
+  cityTileActive: {
+    transform: [{ scale: 1.05 }],
+  },
+  cityCard: {
+    width: 140,
+    padding: spacing.m,
+    borderRadius: 20,
     alignItems: 'center',
+    ...shadows.soft,
+  },
+  specialtySection: {
+    marginBottom: spacing.l,
+  },
+  specialtyScroll: {
+    marginHorizontal: -spacing.m,
+    paddingHorizontal: spacing.m,
+  },
+  specialtyItemH: {
+    marginRight: spacing.s,
+  },
+  specialtyCardH: {
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 100,
+    flexDirection: 'column',
+    ...shadows.soft,
+  },
+  specialtyCardActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  hospitalGrid: {
+    marginTop: spacing.s,
+  },
+  hospitalGridItem: {
+    marginBottom: spacing.m,
+  },
+  hospitalGridCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.m,
     borderRadius: 20,
     ...shadows.soft,
   },
   hospIconLarge: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 12,
     backgroundColor: colors.lightAccent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.s,
+    marginRight: spacing.m,
+  },
+  hospInfo: {
+    flex: 1,
   },
   hospBadge: {
-    marginTop: spacing.m,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     backgroundColor: 'rgba(14, 165, 160, 0.1)',
   },
-  specialtyContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  specialtyItem: {
-    width: '48%',
-    marginBottom: spacing.m,
-  },
-  specialtyCard: {
+  emptyState: {
     alignItems: 'center',
-    padding: spacing.m,
-    borderRadius: 16,
+    justifyContent: 'center',
+    padding: spacing.xl,
+    marginTop: spacing.xl,
   },
-  statusCard: {
-    padding: spacing.l,
-    marginTop: spacing.m,
-    borderRadius: 20,
-  },
-  statusStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.m,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
+  listingSection: {
+    marginBottom: spacing.l,
   },
 });

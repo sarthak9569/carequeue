@@ -21,6 +21,7 @@ import { DepartmentManagementScreen } from '../screens/DepartmentManagementScree
 import { DoctorManagementScreen } from '../screens/DoctorManagementScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
 import { LeaveManagementScreen } from '../screens/LeaveManagementScreen';
+import { DoctorLoginScreen } from '../screens/DoctorLoginScreen';
 
 import { TokenHistoryScreen } from '../screens/TokenHistoryScreen';
 import { StaffManagementScreen } from '../screens/StaffManagementScreen';
@@ -52,6 +53,7 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
+  DoctorLogin: undefined;
   Signup: undefined;
   ForgotPassword: { email?: string } | undefined;
   VerifyOtp: { email: string };
@@ -73,6 +75,7 @@ const AuthNavigator = () => {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="DoctorLogin" component={DoctorLoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <AuthStack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
@@ -142,28 +145,35 @@ export const RootNavigator = () => {
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        <Stack.Navigator 
-          screenOptions={{ headerShown: false }}
-          initialRouteName={
-            user?.role === 'hospital_admin' || user?.role === 'department_admin' 
-              ? 'AdminDashboard' 
-              : user?.role === 'doctor' ? 'DoctorDashboard' : 'MainTabs'
-          }
-        >
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen name="IVR" component={IVRScreen} />
-          <Stack.Screen name="DoctorDashboard" component={DoctorDashboard} />
-          <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="HospitalProfile" component={HospitalProfileScreen} />
-          <Stack.Screen name="DepartmentManagement" component={DepartmentManagementScreen} />
-          <Stack.Screen name="DoctorManagement" component={DoctorManagementScreen} />
-          <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
-          <Stack.Screen name="ScheduleManagement" component={ScheduleManagementScreen} />
-          <Stack.Screen name="Reports" component={ReportsScreen} />
-          <Stack.Screen name="LeaveManagement" component={LeaveManagementScreen} />
-        </Stack.Navigator>
+        user?.role === 'doctor' ? (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="DoctorDashboard" component={DoctorDashboard} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+          </Stack.Navigator>
+        ) : (
+          <Stack.Navigator 
+            screenOptions={{ headerShown: false }}
+            initialRouteName={
+              user?.role === 'hospital_admin' || user?.role === 'department_admin' 
+                ? 'AdminDashboard' 
+                : 'MainTabs'
+            }
+          >
+            <Stack.Screen name="MainTabs" component={TabNavigator} />
+            <Stack.Screen name="IVR" component={IVRScreen} />
+            <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="HospitalProfile" component={HospitalProfileScreen} />
+            <Stack.Screen name="DepartmentManagement" component={DepartmentManagementScreen} />
+            <Stack.Screen name="DoctorManagement" component={DoctorManagementScreen} />
+            <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
+            <Stack.Screen name="ScheduleManagement" component={ScheduleManagementScreen} />
+            <Stack.Screen name="Reports" component={ReportsScreen} />
+            <Stack.Screen name="LeaveManagement" component={LeaveManagementScreen} />
+          </Stack.Navigator>
+        )
       ) : (
         <AuthNavigator />
       )}
