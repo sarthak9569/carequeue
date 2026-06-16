@@ -22,6 +22,8 @@ import { DoctorManagementScreen } from '../screens/DoctorManagementScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
 import { LeaveManagementScreen } from '../screens/LeaveManagementScreen';
 import { DoctorLoginScreen } from '../screens/DoctorLoginScreen';
+import { HospitalModulesScreen } from '../screens/HospitalModulesScreen';
+import { ModuleDetailScreen } from '../screens/ModuleDetailScreen';
 
 import { TokenHistoryScreen } from '../screens/TokenHistoryScreen';
 import { StaffManagementScreen } from '../screens/StaffManagementScreen';
@@ -49,6 +51,8 @@ export type RootStackParamList = {
   ScheduleManagement: undefined;
   Reports: undefined;
   LeaveManagement: undefined;
+  HospitalModules: undefined;
+  ModuleDetail: { type: string, title: string };
 };
 
 export type AuthStackParamList = {
@@ -172,6 +176,8 @@ export const RootNavigator = () => {
             <Stack.Screen name="ScheduleManagement" component={ScheduleManagementScreen} />
             <Stack.Screen name="Reports" component={ReportsScreen} />
             <Stack.Screen name="LeaveManagement" component={LeaveManagementScreen} />
+            <Stack.Screen name="HospitalModules" component={HospitalModulesScreen} />
+            <Stack.Screen name="ModuleDetail" component={ModuleDetailScreen} />
           </Stack.Navigator>
         )
       ) : (

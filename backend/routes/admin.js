@@ -39,6 +39,7 @@ router.post('/departments', authorize('hospital_admin'), (req, res) => {
   req.body.action = 'create';
   manageDepartment(req, res);
 });
+router.put('/departments/:id', authorize('hospital_admin'), manageDepartment);
 
 // Doctors & Schedules
 router.get('/doctors', authorize('hospital_admin', 'department_admin'), getDoctors);

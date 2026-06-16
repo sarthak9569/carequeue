@@ -169,6 +169,12 @@ export const AdminDashboard: React.FC = () => {
             <Typography variant="caption" weight="600" style={{ marginTop: 8 }}>Reports</Typography>
           </Card>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.gridItem} onPress={() => navigation.navigate('HospitalModules')}>
+          <Card style={styles.gridCard}>
+            <Ionicons name="medical" size={28} color={colors.primary} />
+            <Typography variant="caption" weight="600" style={{ marginTop: 8 }}>CMS Hub</Typography>
+          </Card>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

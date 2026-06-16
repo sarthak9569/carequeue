@@ -165,51 +165,54 @@ export const DoctorManagementScreen: React.FC = () => {
           <View style={styles.modalOverlay}>
             <Card style={styles.modalContent}>
               <Typography variant="h3" style={{ marginBottom: spacing.l }}>Onboard Doctor</Typography>
-              <Input 
-                label="Full Name" 
-                placeholder="Dr. John Smith" 
-                value={newDoctor.name}
-                onChangeText={(t) => setNewDoctor({...newDoctor, name: t})}
-              />
-              <Input 
-                label="Doctor ID (DocID)" 
-                placeholder="DOC-001" 
-                value={newDoctor.docId}
-                onChangeText={(t) => setNewDoctor({...newDoctor, docId: t})}
-              />
-              <Input 
-                label="Email" 
-                placeholder="doctor@hospital.com" 
-                value={newDoctor.email}
-                onChangeText={(t) => setNewDoctor({...newDoctor, email: t})}
-              />
-              <Input 
-                label="Registration No" 
-                placeholder="MR-12345" 
-                value={newDoctor.medicalRegistrationNumber}
-                onChangeText={(t) => setNewDoctor({...newDoctor, medicalRegistrationNumber: t})}
-              />
               
-              <Typography variant="caption" weight="800" style={{ marginBottom: spacing.s, color: colors.primary }}>
-                CLINICAL SPECIALTY / DEPARTMENT
-              </Typography>
-              <View style={styles.deptChips}>
-                {departments.map((dept) => (
-                  <TouchableOpacity 
-                    key={dept._id} 
-                    style={[styles.chip, newDoctor.department === dept._id && styles.activeChip]}
-                    onPress={() => setNewDoctor({...newDoctor, department: dept._id})}
-                  >
-                    <Typography 
-                      variant="caption" 
-                      weight="700" 
-                      color={newDoctor.department === dept._id ? colors.surface : colors.muted}
+              <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
+                <Input 
+                  label="Full Name" 
+                  placeholder="Dr. John Smith" 
+                  value={newDoctor.name}
+                  onChangeText={(t) => setNewDoctor({...newDoctor, name: t})}
+                />
+                <Input 
+                  label="Doctor ID (DocID)" 
+                  placeholder="DOC-001" 
+                  value={newDoctor.docId}
+                  onChangeText={(t) => setNewDoctor({...newDoctor, docId: t})}
+                />
+                <Input 
+                  label="Email" 
+                  placeholder="doctor@hospital.com" 
+                  value={newDoctor.email}
+                  onChangeText={(t) => setNewDoctor({...newDoctor, email: t})}
+                />
+                <Input 
+                  label="Registration No" 
+                  placeholder="MR-12345" 
+                  value={newDoctor.medicalRegistrationNumber}
+                  onChangeText={(t) => setNewDoctor({...newDoctor, medicalRegistrationNumber: t})}
+                />
+                
+                <Typography variant="caption" weight="800" style={{ marginBottom: spacing.s, color: colors.primary }}>
+                  CLINICAL SPECIALTY / DEPARTMENT
+                </Typography>
+                <View style={styles.deptChips}>
+                  {departments.map((dept) => (
+                    <TouchableOpacity 
+                      key={dept._id} 
+                      style={[styles.chip, newDoctor.department === dept._id && styles.activeChip]}
+                      onPress={() => setNewDoctor({...newDoctor, department: dept._id})}
                     >
-                      {dept.name.toUpperCase()}
-                    </Typography>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                      <Typography 
+                        variant="caption" 
+                        weight="700" 
+                        color={newDoctor.department === dept._id ? colors.surface : colors.muted}
+                      >
+                        {dept.name.toUpperCase()}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
 
               <View style={styles.modalButtons}>
                 <Button title="Cancel" variant="outline" style={{ flex: 1, marginRight: spacing.s }} onPress={() => setShowModal(false)} />
@@ -231,6 +234,7 @@ const styles = StyleSheet.create({
   avatar: { width: 45, height: 45, borderRadius: 22, backgroundColor: colors.lightAccent, justifyContent: 'center', alignItems: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: spacing.m },
   modalContent: { padding: spacing.xl, borderRadius: 24, maxHeight: '90%' },
+  modalScroll: { flexGrow: 0 },
   modalButtons: { flexDirection: 'row', marginTop: spacing.l },
   deptChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: spacing.s, paddingBottom: spacing.m },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },

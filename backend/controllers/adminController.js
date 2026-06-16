@@ -93,24 +93,49 @@ exports.getDepartments = async (req, res) => {
 // Department Management
 exports.manageDepartment = async (req, res) => {
   try {
-    const { action } = req.body;
+    const { action, name, hospital } = req.body;
     let dept;
+
     if (action === 'create') {
-      dept = await Department.create(req.body);
+      const trimmedName = name.trim();
+      
+      // Check if this hospital already has this department (even if inactive)
+      // We use a case-insensitive regex check for robustness
+      const existingDept = await Department.findOne({ 
+        hospital, 
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } 
+      });
+
+      if (existingDept) {
+        if (existingDept.status === 'Inactive') {
+          // If it exists but was disabled, just re-enable it
+          existingDept.status = 'Active';
+          existingDept.code = req.body.code || existingDept.code;
+          await existingDept.save();
+          return res.status(200).json({ success: true, data: existingDept });
+        } else {
+          return res.status(400).json({ 
+            success: false, 
+            message: `The '${trimmedName}' department already exists in your hospital.` 
+          });
+        }
+      }
+
+      dept = await Department.create({ ...req.body, name: trimmedName });
     } else if (action === 'update') {
-      dept = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const updateData = { ...req.body };
+      if (updateData.name) updateData.name = updateData.name.trim();
+      dept = await Department.findByIdAndUpdate(req.params.id, updateData, { new: true });
     } else if (action === 'disable') {
       dept = await Department.findByIdAndUpdate(req.params.id, { status: 'Inactive' }, { new: true });
     }
     res.status(200).json({ success: true, data: dept });
   } catch (error) {
-    console.error('Department Management Error:', error.message);
-    res.status(400).json({ 
-      success: false, 
-      message: error.name === 'ValidationError' 
-        ? Object.values(error.errors).map(val => val.message).join(', ')
-        : error.message 
-    });
+    let message = error.message;
+    if (error.code === 11000) {
+      message = "A department with this name already exists in your hospital sanctuary.";
+    }
+    res.status(400).json({ success: false, message });
   }
 };
 

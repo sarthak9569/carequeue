@@ -25,7 +25,11 @@ export const LoginScreen: React.FC = () => {
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (activePortal === 'PATIENT' && !email || activePortal === 'HOSPITAL' && !isAdmin && !docID || !password) {
+    const isHospitalAdmin = activePortal === 'HOSPITAL';
+    const isPatient = activePortal === 'PATIENT';
+    
+    // Check if required fields are missing
+    if ((isPatient && !email) || (isHospitalAdmin && !email) || !password) {
       setError('Please fill in all identity fields');
       return;
     }
@@ -66,13 +70,13 @@ export const LoginScreen: React.FC = () => {
             <View style={styles.toggleRow}>
               <TouchableOpacity 
                 style={[styles.toggleBtn, activePortal === 'PATIENT' && styles.activeToggle]} 
-                onPress={() => { setActivePortal('PATIENT'); setError(''); }}
+                onPress={() => { setActivePortal('PATIENT'); setIsAdmin(false); setError(''); }}
               >
                 <Typography variant="caption" weight="700" color={activePortal === 'PATIENT' ? colors.surface : colors.muted}>PATIENT</Typography>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.toggleBtn, activePortal === 'HOSPITAL' && styles.activeToggle]} 
-                onPress={() => { setActivePortal('HOSPITAL'); setError(''); }}
+                onPress={() => { setActivePortal('HOSPITAL'); setIsAdmin(true); setError(''); }}
               >
                 <Typography variant="caption" weight="700" color={activePortal === 'HOSPITAL' ? colors.surface : colors.muted}>HOSPITAL</Typography>
               </TouchableOpacity>

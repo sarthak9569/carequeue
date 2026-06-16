@@ -12,8 +12,10 @@ const leaveSchema = new mongoose.Schema({
     required: true,
     enum: ['Doctor', 'Staff']
   },
-  leaveDate: { type: Date, required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
   reason: { type: String, required: true },
+  substitute: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' }, // The doctor taking charge
   status: { 
     type: String, 
     enum: ['Pending', 'Approved', 'Rejected'], 

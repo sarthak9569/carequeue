@@ -8,4 +8,7 @@ const departmentSchema = new mongoose.Schema({
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
 }, { timestamps: true });
 
+// Ensure names are unique ONLY within the same hospital, not across the whole app
+departmentSchema.index({ hospital: 1, name: 1 }, { unique: true });
+
 module.exports = mongoose.model('Department', departmentSchema);
